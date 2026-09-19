@@ -1,0 +1,1813 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#b91c1c">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>Hệ Thống Kiểm Tra Định Kỳ PCCC - HSE Mobile App</title>
+  
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Lucide Icons CDN -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <!-- HTML5 QR Code Scanner CDN -->
+  <script src="https://unpkg.com/html5-qrcode"></script>
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            pccc: {
+              50: '#fef2f2',
+              100: '#fee2e2',
+              500: '#ef4444',
+              600: '#dc2626',
+              700: '#b91c1c',
+              800: '#991b1b',
+              900: '#7f1d1d'
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    /* Mobile-first touch & ergonomic styling */
+    * {
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+    }
+    input, textarea, select {
+      user-select: text;
+    }
+    .scrollbar-none::-webkit-scrollbar {
+      display: none;
+    }
+    .scrollbar-none {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+    .toggle-active-pass {
+      background-color: #16a34a !important;
+      color: #ffffff !important;
+      border-color: #15803d !important;
+      box-shadow: 0 4px 6px -1px rgba(22, 163, 74, 0.4);
+    }
+    .toggle-active-fail {
+      background-color: #dc2626 !important;
+      color: #ffffff !important;
+      border-color: #b91c1c !important;
+      box-shadow: 0 4px 6px -1px rgba(220, 38, 38, 0.4);
+    }
+    .toggle-active-warn {
+      background-color: #d97706 !important;
+      color: #ffffff !important;
+      border-color: #b45309 !important;
+      box-shadow: 0 4px 6px -1px rgba(217, 119, 6, 0.4);
+    }
+    @keyframes pulse-subtle {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.85; transform: scale(0.98); }
+    }
+    .pulse-alert {
+      animation: pulse-subtle 2s infinite ease-in-out;
+    }
+  </style>
+</head>
+
+<body class="bg-slate-100 text-slate-800 min-h-screen flex flex-col font-sans pb-20">
+
+  <!-- ================= TOP APP BAR ================= -->
+  <header class="bg-gradient-to-r from-red-800 to-pccc-700 text-white sticky top-0 z-40 shadow-lg px-4 py-3">
+    <div class="max-w-lg mx-auto flex items-center justify-between">
+      <div class="flex items-center space-x-2.5">
+        <div class="w-9 h-9 rounded-xl bg-white/15 flex items-center justify-center backdrop-blur-sm border border-white/20 shadow-inner">
+          <i data-lucide="flame" class="w-5 h-5 text-amber-300 fill-amber-300"></i>
+        </div>
+        <div>
+          <h1 class="font-bold text-base tracking-tight leading-tight flex items-center gap-1.5">
+            PCCC INSPECTOR
+            <span class="text-[10px] uppercase font-semibold px-1.5 py-0.5 bg-red-950/60 rounded text-red-200 border border-red-500/30">HSE</span>
+          </h1>
+          <p class="text-[11px] text-red-100/80 font-medium">Kiểm Tra Định Kỳ Nhà Máy</p>
+        </div>
+      </div>
+
+      <div class="flex items-center space-x-2">
+        <!-- Online / Offline status badge -->
+        <div id="netStatusBadge" class="flex items-center space-x-1.5 px-2 py-1 rounded-full text-xs font-semibold bg-emerald-950/70 border border-emerald-500/40 text-emerald-300">
+          <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+          <span id="netStatusText">Online</span>
+        </div>
+
+        <!-- Sync Pending Badge (Hidden if 0) -->
+        <button id="btnQuickSync" onclick="syncOfflineQueue()" class="hidden items-center space-x-1 px-2 py-1 rounded-full text-xs font-bold bg-amber-500 text-slate-950 shadow animate-bounce">
+          <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i>
+          <span id="offlineCountBadge">0</span>
+        </button>
+
+        <!-- Settings Button -->
+        <button onclick="openSettingsModal()" class="w-8 h-8 rounded-lg bg-white/10 hover:bg-white/20 active:scale-95 flex items-center justify-center transition border border-white/20" title="Cài đặt hệ thống">
+          <i data-lucide="settings" class="w-4 h-4 text-white"></i>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- ================= SUB-HEADER: INSPECTOR BAR & SCAN QR ================= -->
+  <div class="bg-white border-b border-slate-200 px-4 py-2.5 shadow-sm">
+    <div class="max-w-lg mx-auto flex items-center justify-between gap-2">
+      <!-- Inspector Info -->
+      <div onclick="openSettingsModal()" class="flex items-center space-x-2 cursor-pointer group flex-1 min-w-0">
+        <div class="w-7 h-7 rounded-full bg-red-100 flex items-center justify-center text-pccc-700">
+          <i data-lucide="user-check" class="w-4 h-4"></i>
+        </div>
+        <div class="truncate">
+          <p class="text-[10px] text-slate-400 uppercase font-bold tracking-wider leading-none">Người Kiểm Tra</p>
+          <p id="topBarInspectorName" class="text-xs font-semibold text-slate-800 truncate group-hover:text-pccc-600 transition">Kỹ Sư An Toàn</p>
+        </div>
+      </div>
+
+      <!-- Quick QR Scan Button (Thumb-Friendly) -->
+      <button onclick="openQrModal()" class="flex items-center space-x-1.5 px-3 py-1.5 bg-pccc-600 hover:bg-pccc-700 active:scale-95 text-white rounded-lg shadow font-semibold text-xs transition">
+        <i data-lucide="qr-code" class="w-4 h-4"></i>
+        <span>Quét QR Thiết Bị</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- ================= OFFLINE BANNER (Conditional) ================= -->
+  <div id="offlineBanner" class="hidden bg-amber-50 border-b border-amber-200 px-4 py-2 text-amber-900 text-xs font-medium">
+    <div class="max-w-lg mx-auto flex items-center justify-between">
+      <div class="flex items-center space-x-2">
+        <i data-lucide="wifi-off" class="w-4 h-4 text-amber-600 flex-shrink-0"></i>
+        <span>Đang mất sóng Wifi/4G. Dữ liệu sẽ lưu tạm vào bộ nhớ máy.</span>
+      </div>
+      <button onclick="syncOfflineQueue()" class="text-amber-800 underline font-bold ml-2">Đồng bộ</button>
+    </div>
+  </div>
+
+  <!-- ================= DEVICE CATEGORY TABS (Scrollable horizontal) ================= -->
+  <nav class="bg-slate-900 text-slate-300 px-2 py-2 sticky top-[61px] z-30 shadow-md">
+    <div class="max-w-lg mx-auto flex space-x-2 overflow-x-auto scrollbar-none py-0.5">
+      <button onclick="switchCategory('Binh_Bot')" id="tabBtn_Binh_Bot" class="category-tab px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap flex items-center space-x-1.5 bg-pccc-600 text-white shadow">
+        <span>🧯</span>
+        <span>1. Bình Bột</span>
+      </button>
+      <button onclick="switchCategory('Binh_CO2')" id="tabBtn_Binh_CO2" class="category-tab px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap flex items-center space-x-1.5 bg-slate-800 text-slate-300 hover:bg-slate-700">
+        <span>❄️</span>
+        <span>2. Bình CO2</span>
+      </button>
+      <button onclick="switchCategory('Chuong_BaoChay')" id="tabBtn_Chuong_BaoChay" class="category-tab px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap flex items-center space-x-1.5 bg-slate-800 text-slate-300 hover:bg-slate-700">
+        <span>🔔</span>
+        <span>3. Nút & Chuông</span>
+      </button>
+      <button onclick="switchCategory('Tu_Vach_Tuong')" id="tabBtn_Tu_Vach_Tuong" class="category-tab px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap flex items-center space-x-1.5 bg-slate-800 text-slate-300 hover:bg-slate-700">
+        <span>🚒</span>
+        <span>4. Tủ Vòi Vách</span>
+      </button>
+      <button onclick="switchCategory('Tram_Bom')" id="tabBtn_Tram_Bom" class="category-tab px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap flex items-center space-x-1.5 bg-slate-800 text-slate-300 hover:bg-slate-700">
+        <span>⚙️</span>
+        <span>5. Trạm Bơm</span>
+      </button>
+      <button onclick="switchCategory('Tu_Trung_Tam_PCCC')" id="tabBtn_Tu_Trung_Tam_PCCC" class="category-tab px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap flex items-center space-x-1.5 bg-slate-800 text-slate-300 hover:bg-slate-700">
+        <span>🖥️</span>
+        <span>6. Tủ Trung Tâm</span>
+      </button>
+    </div>
+  </nav>
+
+  <!-- ================= MAIN CONTAINER ================= -->
+  <main class="flex-1 max-w-lg mx-auto w-full px-3.5 py-4 space-y-4">
+
+    <!-- COMMON DEVICE INFO CARD -->
+    <div class="bg-white rounded-xl p-3.5 border border-slate-200 shadow-sm">
+      <div class="flex items-center justify-between mb-2">
+        <h2 class="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
+          <i data-lucide="tag" class="w-3.5 h-3.5 text-pccc-600"></i>
+          Thông Tin Thiết Bị
+        </h2>
+        <span id="categoryLabelBadge" class="text-[11px] font-bold px-2 py-0.5 rounded bg-red-100 text-pccc-800">Bình Bột Chữa Cháy</span>
+      </div>
+
+      <div class="grid grid-cols-2 gap-2.5">
+        <!-- Device ID with datalist autocomplete -->
+        <div class="col-span-1">
+          <label class="block text-[11px] font-semibold text-slate-600 mb-1">Mã Thiết Bị *</label>
+          <div class="relative">
+            <input type="text" id="inputDeviceId" list="masterDeviceList" onchange="onDeviceSelected(this.value)" placeholder="Ví dụ: BOT-X1-01" class="w-full bg-slate-50 border border-slate-300 rounded-lg px-2.5 py-2 text-xs font-bold text-slate-800 focus:bg-white focus:border-pccc-600 focus:ring-1 focus:ring-pccc-600 outline-none uppercase">
+            <datalist id="masterDeviceList"></datalist>
+          </div>
+        </div>
+
+        <!-- Location -->
+        <div class="col-span-1">
+          <label class="block text-[11px] font-semibold text-slate-600 mb-1">Vị Trí Đặt *</label>
+          <input type="text" id="inputLocation" placeholder="Ví dụ: Xưởng 1 - Cột A3" class="w-full bg-slate-50 border border-slate-300 rounded-lg px-2.5 py-2 text-xs font-medium text-slate-800 focus:bg-white focus:border-pccc-600 focus:ring-1 focus:ring-pccc-600 outline-none">
+        </div>
+      </div>
+
+      <!-- Extra info tags (Standard weight / Expiry) -->
+      <div id="deviceMetaBar" class="hidden mt-2 pt-2 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-500">
+        <span id="lblStandardWeight">Chuẩn: <strong>--</strong> kg</span>
+        <span id="lblInspectionExpiry">Hạn KĐ: <strong>--</strong></span>
+      </div>
+    </div>
+
+    <!-- ================= FORM 1: BÌNH BỘT CHỮA CHÁY ================= -->
+    <div id="form_Binh_Bot" class="category-form space-y-3">
+      <!-- Standard Weight input (if not loaded) -->
+      <div class="bg-white rounded-xl p-3 border border-slate-200 shadow-sm flex items-center justify-between">
+        <div>
+          <label class="text-xs font-bold text-slate-700">Khối Lượng Chuẩn (kg)</label>
+          <p class="text-[11px] text-slate-400">Trọng lượng theo tem mác</p>
+        </div>
+        <input type="number" step="0.1" id="bot_standardWeight" value="4.0" class="w-24 text-right bg-slate-50 border border-slate-300 rounded-lg px-2 py-1.5 text-sm font-bold text-slate-800 focus:border-pccc-600 outline-none">
+      </div>
+
+      <!-- Kim đồng hồ áp suất (3 quick buttons: Xanh/Đỏ/Vàng) -->
+      <div class="bg-white rounded-xl p-3 border border-slate-200 shadow-sm">
+        <label class="block text-xs font-bold text-slate-700 mb-1.5">Kim Đồng Hồ Đo Áp Lực *</label>
+        <div class="grid grid-cols-3 gap-2">
+          <button type="button" onclick="setGaugeStatus('Xanh')" id="gauge_Xanh" class="gauge-btn py-2.5 px-2 rounded-lg border-2 border-emerald-500 bg-emerald-600 text-white font-bold text-xs flex flex-col items-center justify-center transition shadow">
+            <span class="text-base">🟢</span>
+            <span>Xanh: Đủ áp</span>
+          </button>
+          <button type="button" onclick="setGaugeStatus('Đỏ')" id="gauge_Đỏ" class="gauge-btn py-2.5 px-2 rounded-lg border border-slate-200 bg-slate-50 text-slate-700 font-semibold text-xs flex flex-col items-center justify-center transition hover:bg-slate-100">
+            <span class="text-base">🔴</span>
+            <span>Đỏ: Quá áp</span>
+          </button>
+          <button type="button" onclick="setGaugeStatus('Vàng')" id="gauge_Vàng" class="gauge-btn py-2.5 px-2 rounded-lg border border-slate-200 bg-slate-50 text-slate-700 font-semibold text-xs flex flex-col items-center justify-center transition hover:bg-slate-100">
+            <span class="text-base">🟡</span>
+            <span>Vàng: Tụt áp</span>
+          </button>
+        </div>
+        <input type="hidden" id="bot_gaugeStatus" value="Xanh">
+      </div>
+
+      <!-- Loa phun & Vòi -->
+      <div class="bg-white rounded-xl p-3 border border-slate-200 shadow-sm flex items-center justify-between">
+        <div>
+          <h3 class="text-xs font-bold text-slate-800">Loa Phun / Vòi Dẫn</h3>
+          <p class="text-[11px] text-slate-400">Không nứt vỡ, không tắc nghẽn</p>
+        </div>
+        <div class="flex space-x-1.5">
+          <button type="button" onclick="setToggle('bot_nozzle', 'ĐẠT')" id="btn_bot_nozzle_pass" class="px-3.5 py-1.5 rounded-lg text-xs font-bold border toggle-active-pass transition">ĐẠT</button>
+          <button type="button" onclick="setToggle('bot_nozzle', 'HỎNG')" id="btn_bot_nozzle_fail" class="px-3.5 py-1.5 rounded-lg text-xs font-bold border border-slate-200 bg-slate-50 text-slate-600 transition">HỎNG</button>
+          <input type="hidden" id="bot_nozzle" value="ĐẠT">
+        </div>
+      </div>
+
+      <!-- Chốt an toàn & Kẹp chì -->
+      <div class="bg-white rounded-xl p-3 border border-slate-200 shadow-sm flex items-center justify-between">
+        <div>
+          <h3 class="text-xs font-bold text-slate-800">Chốt An Toàn / Kẹp Chì</h3>
+          <p class="text-[11px] text-slate-400">Còn nguyên vẹn, chưa bị giật</p>
+        </div>
+        <div class="flex space-x-1.5">
+          <button type="button" onclick="setToggle('bot_pin', 'ĐẠT')" id="btn_bot_pin_pass" class="px-3.5 py-1.5 rounded-lg text-xs font-bold border toggle-active-pass transition">ĐẠT</button>
+          <button type="button" onclick="setToggle('bot_pin', 'HỎNG')" id="btn_bot_pin_fail" class="px-3.5 py-1.5 rounded-lg text-xs font-bold border border-slate-200 bg-slate-50 text-slate-600 transition">HỎNG</button>
+          <input type="hidden" id="bot_pin" value="ĐẠT">
+        </div>
+      </div>
+
+      <!-- Hạn kiểm định -->
+      <div class="bg-white rounded-xl p-3 border border-slate-200 shadow-sm flex items-center justify-between">
+        <div>
+          <h3 class="text-xs font-bold text-slate-800">Hạn Kiểm Định</h3>
+          <p class="text-[11px] text-slate-400">Thời hạn ghi trên tem</p>
+        </div>
+        <input type="date" id="bot_expiry" class="bg-slate-50 border border-slate-300 rounded-lg px-2 py-1 text-xs font-medium text-slate-700 outline-none">
+      </div>
+    </div>
+
+    <!-- ================= FORM 2: BÌNH KHÍ CO2 ================= -->
+    <div id="form_Binh_CO2" class="category-form hidden space-y-3">
+      <!-- Cân nặng & Tính toán hao hụt tự động -->
+      <div class="bg-white rounded-xl p-3.5 border border-slate-200 shadow-sm space-y-3">
+        <div class="flex items-center justify-between">
+          <span class="text-xs font-bold text-slate-800">Đo Lường Cân Nặng (kg)</span>
+          <span class="text-[11px] text-amber-700 bg-amber-50 px-2 py-0.5 rounded border border-amber-200 font-semibold">Quy chuẩn HSE &le; 10%</span>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-[11px] font-semibold text-slate-500 mb-1">Cả vỏ chuẩn (kg)</label>
+            <input type="number" step="0.1" id="co2_standardWeight" value="10.5" oninput="calculateCo2Loss()" placeholder="Ví dụ: 10.5" class="w-full bg-slate-50 border border-slate-300 rounded-lg px-2.5 py-2 text-sm font-bold text-slate-800 outline-none">
+          </div>
+          <div>
+            <label class="block text-[11px] font-semibold text-slate-500 mb-1">Cân thực tế (kg) *</label>
+            <input type="number" step="0.05" id="co2_actualWeight" oninput="calculateCo2Loss()" placeholder="Nhập số cân" class="w-full bg-amber-50/60 border-2 border-amber-400 rounded-lg px-2.5 py-2 text-sm font-bold text-amber-950 focus:bg-white outline-none">
+          </div>
+        </div>
+
+        <!-- Real-time calculation visual box -->
+        <div id="co2CalcResultBox" class="rounded-lg p-2.5 bg-slate-50 border border-slate-200 flex items-center justify-between">
+          <div>
+            <span class="text-[11px] text-slate-500 block">Độ hao hụt khí:</span>
+            <span id="co2LossPercentDisplay" class="text-base font-extrabold text-slate-700">0.0 %</span>
+          </div>
+          <div id="co2LossBadge" class="text-xs font-bold px-2.5 py-1 rounded bg-slate-200 text-slate-600">
+            Chưa nhập cân nặng
+          </div>
+        </div>
+      </div>
+
+      <!-- Loa phun CO2 (Loa to, không nứt) -->
+      <div class="bg-white rounded-xl p-3 border border-slate-200 shadow-sm flex items-center justify-between">
+        <div>
+          <h3 class="text-xs font-bold text-slate-800">Loa Phun CO2</h3>
+          <p class="text-[11px] text-slate-400">Loa cao su/nhựa chịu lạnh, ko nứt</p>
+        </div>
+        <div class="flex space-x-1.5">
+          <button type="button" onclick="setToggle('co2_nozzle', 'ĐẠT')" id="btn_co2_nozzle_pass" class="px-3.5 py-1.5 rounded-lg text-xs font-bold border toggle-active-pass transition">ĐẠT</button>
+          <button type="button" onclick="setToggle('co2_nozzle', 'HỎNG')" id="btn_co2_nozzle_fail" class="px-3.5 py-1.5 rounded-lg text-xs font-bold border border-slate-200 bg-slate-50 text-slate-600 transition">HỎNG</button>
+          <input type="hidden" id="co2_nozzle" value="ĐẠT">
+        </div>
+      </div>
+
+      <!-- Chốt an toàn & Niêm phong -->
+      <div class="bg-white rounded-xl p-3 border border-slate-200 shadow-sm flex items-center justify-between">
+        <div>
+          <h3 class="text-xs font-bold text-slate-800">Chốt An Toàn & Dây Rút</h3>
+          <p class="text-[11px] text-slate-400">Cụm mỏ vịt nguyên vẹn</p>
+        </div>
+        <div class="flex space-x-1.5">
+          <button type="button" onclick="setToggle('co2_pin', 'ĐẠT')" id="btn_co2_pin_pass" class="px-3.5 py-1.5 rounded-lg text-xs font-bold border toggle-active-pass transition">ĐẠT</button>
+          <button type="button" onclick="setToggle('co2_pin', 'HỎNG')" id="btn_co2_pin_fail" class="px-3.5 py-1.5 rounded-lg text-xs font-bold border border-slate-200 bg-slate-50 text-slate-600 transition">HỎNG</button>
+          <input type="hidden" id="co2_pin" value="ĐẠT">
+        </div>
+      </div>
+    </div>
+
+    <!-- ================= FORM 3: NÚT ẤN & CHUÔNG BÁO CHÁY ================= -->
+    <div id="form_Chuong_BaoChay" class="category-form hidden space-y-3">
+      <!-- Chủng loại -->
+      <div class="bg-white rounded-xl p-3 border border-slate-200 shadow-sm flex items-center justify-between">
+        <div>
+          <label class="text-xs font-bold text-slate-700">Chủng Loại</label>
+          <p class="text-[11px] text-slate-400">Hệ quy ước hoặc địa chỉ</p>
+        </div>
+        <select id="alarm_deviceType" class="bg-slate-50 border border-slate-300 rounded-lg px-2 py-1.5 text-xs font-semibold text-slate-700 outline-none">
+          <option value="Tổ hợp chuông đèn nút ấn">Tổ hợp Chuông/Đèn/Nút</option>
+          <option value="Nút ấn khẩn cấp độc lập">Nút ấn khẩn cấp</option>
+          <option value="Chuông/Còi báo động">Chuông / Còi báo</option>
+          <option value="Đèn chớp báo cháy">Đèn chớp cảnh báo</option>
+        </select>
+      </div>
+
+      <!-- Nút ấn khẩn -->
+      <div class="bg-white rounded-xl p-3 border border-slate-200 shadow-sm flex items-center justify-between">
+        <div>
+          <h3 class="text-xs font-bold text-slate-800">Nút Ấn Khẩn Cấp</h3>
+          <p class="text-[11px] text-slate-400">Kính/màng bảo vệ, lò xo bấm nhạy</p>
+        </div>
+        <div class="flex space-x-1.5">
+          <button type="button" onclick="setToggle('alarm_btn', 'Đạt')" id="btn_alarm_btn_pass" class="px-3.5 py-1.5 rounded-lg text-xs font-bold border toggle-active-pass transition">Đạt</button>
+          <button type="button" onclick="setToggle('alarm_btn', 'Không Đạt')" id="btn_alarm_btn_fail" class="px-3.5 py-1.5 rounded-lg text-xs font-bold border border-slate-200 bg-slate-50 text-slate-600 transition">K.Đạt</button>
+          <input type="hidden" id="alarm_btn" value="Đạt">
+        </div>
+      </div>
+
+      <!-- Chuông/Còi reo -->
+      <div class="bg-white rounded-xl p-3 border border-slate-200 shadow-sm flex items-center justify-between">
+        <div>
+          <h3 class="text-xs font-bold text-slate-800">Chuông / Còi Reo</h3>
+          <p class="text-[11px] text-slate-400">Âm lượng to rõ, không rè tiếng</p>
+        </div>
+        <div class="flex space-x-1.5">
+          <button type="button" onclick="setToggle('alarm_sound', 'Đạt')" id="btn_alarm_sound_pass" class="px-3.5 py-1.5 rounded-lg text-xs font-bold border toggle-active-pass transition">Đạt</button>
+          <button type="button" onclick="setToggle('alarm_sound', 'Không Đạt')" id="btn_alarm_sound_fail" class="px-3.5 py-1.5 rounded-lg text-xs font-bold border border-slate-200 bg-slate-50 text-slate-600 transition">K.Đạt</button>
+          <input type="hidden" id="alarm_sound" value="Đạt">
+        </div>
+      </div>
+
+      <!-- Đèn chỉ thị vị trí -->
+      <div class="bg-white rounded-xl p-3 border border-slate-200 shadow-sm flex items-center justify-between">
+        <div>
+          <h3 class="text-xs font-bold text-slate-800">Đèn Chỉ Thị Vị Trí</h3>
+          <p class="text-[11px] text-slate-400">Đèn LED đỏ sáng liên tục</p>
+        </div>
+        <div class="flex space-x-1.5">
+          <button type="button" onclick="setToggle('alarm_lamp', 'Đạt')" id="btn_alarm_lamp_pass" class="px-3.5 py-1.5 rounded-lg text-xs font-bold border toggle-active-pass transition">Đạt</button>
+          <button type="button" onclick="setToggle('alarm_lamp', 'Không Đạt')" id="btn_alarm_lamp_fail" class="px-3.5 py-1.5 rounded-lg text-xs font-bold border border-slate-200 bg-slate-50 text-slate-600 transition">K.Đạt</button>
+          <input type="hidden" id="alarm_lamp" value="Đạt">
+        </div>
+      </div>
+
+      <!-- Cần gạt Reset -->
+      <div class="bg-white rounded-xl p-3 border border-slate-200 shadow-sm flex items-center justify-between">
+        <div>
+          <h3 class="text-xs font-bold text-slate-800">Cần Gạt / Khóa Reset</h3>
+          <p class="text-[11px] text-slate-400">Phục hồi trạng thái bình thường tốt</p>
+        </div>
+        <div class="flex space-x-1.5">
+          <button type="button" onclick="setToggle('alarm_reset', 'Đạt')" id="btn_alarm_reset_pass" class="px-3.5 py-1.5 rounded-lg text-xs font-bold border toggle-active-pass transition">Đạt</button>
+          <button type="button" onclick="setToggle('alarm_reset', 'Không Đạt')" id="btn_alarm_reset_fail" class="px-3.5 py-1.5 rounded-lg text-xs font-bold border border-slate-200 bg-slate-50 text-slate-600 transition">K.Đạt</button>
+          <input type="hidden" id="alarm_reset" value="Đạt">
+        </div>
+      </div>
+    </div>
+
+    <!-- ================= FORM 4: TỦ VÒI CHỮA CHÁY VÁCH TƯỜNG ================= -->
+    <div id="form_Tu_Vach_Tuong" class="category-form hidden space-y-3">
+      <!-- Họng nước -->
+      <div class="bg-white rounded-xl p-3 border border-slate-200 shadow-sm flex items-center justify-between">
+        <div>
+          <h3 class="text-xs font-bold text-slate-800">Họng Nước / Van Góc</h3>
+          <p class="text-[11px] text-slate-400">Có nước, van đóng mở trơn tru</p>
+        </div>
+        <div class="flex space-x-1.5">
+          <button type="button" onclick="setToggle('hose_valve', 'Đạt')" id="btn_hose_valve_pass" class="px-3.5 py-1.5 rounded-lg text-xs font-bold border toggle-active-pass transition">Đạt</button>
+          <button type="button" onclick="setToggle('hose_valve', 'Không Đạt')" id="btn_hose_valve_fail" class="px-3.5 py-1.5 rounded-lg text-xs font-bold border border-slate-200 bg-slate-50 text-slate-600 transition">K.Đạt</button>
+          <input type="hidden" id="hose_valve" value="Đạt">
+        </div>
+      </div>
+
+      <!-- Cuộn vòi (rò rỉ) -->
+      <div class="bg-white rounded-xl p-3 border border-slate-200 shadow-sm flex items-center justify-between">
+        <div>
+          <h3 class="text-xs font-bold text-slate-800">Cuộn Vòi (Tình trạng rò rỉ)</h3>
+          <p class="text-[11px] text-slate-400">Vải bạt không rách, mục, chuột cắn</p>
+        </div>
+        <div class="flex space-x-1.5">
+          <button type="button" onclick="setToggle('hose_leak', 'Đạt')" id="btn_hose_leak_pass" class="px-3.5 py-1.5 rounded-lg text-xs font-bold border toggle-active-pass transition">Đạt</button>
+          <button type="button" onclick="setToggle('hose_leak', 'Rò rỉ')" id="btn_hose_leak_fail" class="px-3.5 py-1.5 rounded-lg text-xs font-bold border border-slate-200 bg-slate-50 text-slate-600 transition">Rò rỉ</button>
+          <input type="hidden" id="hose_leak" value="Đạt">
+        </div>
+      </div>
+
+      <!-- Cuộn vòi (Khớp nối) -->
+      <div class="bg-white rounded-xl p-3 border border-slate-200 shadow-sm flex items-center justify-between">
+        <div>
+          <h3 class="text-xs font-bold text-slate-800">Cuộn Vòi (Khớp Nối Ngàm)</h3>
+          <p class="text-[11px] text-slate-400">Ron cao su kín, ngàm nhôm không móp</p>
+        </div>
+        <div class="flex space-x-1.5">
+          <button type="button" onclick="setToggle('hose_coupling', 'Đạt')" id="btn_hose_coupling_pass" class="px-3.5 py-1.5 rounded-lg text-xs font-bold border toggle-active-pass transition">Đạt</button>
+          <button type="button" onclick="setToggle('hose_coupling', 'Hỏng')" id="btn_hose_coupling_fail" class="px-3.5 py-1.5 rounded-lg text-xs font-bold border border-slate-200 bg-slate-50 text-slate-600 transition">Hỏng</button>
+          <input type="hidden" id="hose_coupling" value="Đạt">
+        </div>
+      </div>
+
+      <!-- Lăng phun (Có sẵn) -->
+      <div class="bg-white rounded-xl p-3 border border-slate-200 shadow-sm flex items-center justify-between">
+        <div>
+          <h3 class="text-xs font-bold text-slate-800">Lăng Phun (Có sẵn trong tủ)</h3>
+          <p class="text-[11px] text-slate-400">Đầy đủ số lượng theo danh mục</p>
+        </div>
+        <div class="flex space-x-1.5">
+          <button type="button" onclick="setToggle('nozzle_avail', 'Đạt')" id="btn_nozzle_avail_pass" class="px-3.5 py-1.5 rounded-lg text-xs font-bold border toggle-active-pass transition">Đạt</button>
+          <button type="button" onclick="setToggle('nozzle_avail', 'Thiếu')" id="btn_nozzle_avail_fail" class="px-3.5 py-1.5 rounded-lg text-xs font-bold border border-slate-200 bg-slate-50 text-slate-600 transition">Thiếu</button>
+          <input type="hidden" id="nozzle_avail" value="Đạt">
+        </div>
+      </div>
+
+      <!-- Lăng phun (Khớp nối) -->
+      <div class="bg-white rounded-xl p-3 border border-slate-200 shadow-sm flex items-center justify-between">
+        <div>
+          <h3 class="text-xs font-bold text-slate-800">Lăng Phun (Khớp nối ngàm)</h3>
+          <p class="text-[11px] text-slate-400">Khớp nối lắp vừa với cuộn vòi</p>
+        </div>
+        <div class="flex space-x-1.5">
+          <button type="button" onclick="setToggle('nozzle_coupling', 'Đạt')" id="btn_nozzle_coupling_pass" class="px-3.5 py-1.5 rounded-lg text-xs font-bold border toggle-active-pass transition">Đạt</button>
+          <button type="button" onclick="setToggle('nozzle_coupling', 'Không Đạt')" id="btn_nozzle_coupling_fail" class="px-3.5 py-1.5 rounded-lg text-xs font-bold border border-slate-200 bg-slate-50 text-slate-600 transition">K.Đạt</button>
+          <input type="hidden" id="nozzle_coupling" value="Đạt">
+        </div>
+      </div>
+    </div>
+
+    <!-- ================= FORM 5: TRẠM BƠM PCCC ================= -->
+    <div id="form_Tram_Bom" class="category-form hidden space-y-3">
+      <!-- Hệ thống điện tủ điều khiển -->
+      <div class="bg-white rounded-xl p-3 border border-slate-200 shadow-sm flex items-center justify-between">
+        <div>
+          <h3 class="text-xs font-bold text-slate-800">Hệ Thống Điện & Tủ Bơm</h3>
+          <p class="text-[11px] text-slate-400">Đủ 3 pha, chế độ Auto sẵn sàng</p>
+        </div>
+        <div class="flex space-x-1.5">
+          <button type="button" onclick="setToggle('pump_power', 'Đạt')" id="btn_pump_power_pass" class="px-3.5 py-1.5 rounded-lg text-xs font-bold border toggle-active-pass transition">Đạt</button>
+          <button type="button" onclick="setToggle('pump_power', 'Lỗi')" id="btn_pump_power_fail" class="px-3.5 py-1.5 rounded-lg text-xs font-bold border border-slate-200 bg-slate-50 text-slate-600 transition">Lỗi</button>
+          <input type="hidden" id="pump_power" value="Đạt">
+        </div>
+      </div>
+
+      <!-- Máy bơm chính 1 -->
+      <div class="bg-white rounded-xl p-3 border border-slate-200 shadow-sm flex items-center justify-between">
+        <div>
+          <h3 class="text-xs font-bold text-slate-800">Máy Bơm Chính 1 (Bơm điện)</h3>
+          <p class="text-[11px] text-slate-400">Khởi động êm, không quá nhiệt</p>
+        </div>
+        <div class="flex space-x-1.5">
+          <button type="button" onclick="setToggle('pump_main1', 'Đạt')" id="btn_pump_main1_pass" class="px-3.5 py-1.5 rounded-lg text-xs font-bold border toggle-active-pass transition">Đạt</button>
+          <button type="button" onclick="setToggle('pump_main1', 'Lỗi')" id="btn_pump_main1_fail" class="px-3.5 py-1.5 rounded-lg text-xs font-bold border border-slate-200 bg-slate-50 text-slate-600 transition">Lỗi</button>
+          <input type="hidden" id="pump_main1" value="Đạt">
+        </div>
+      </div>
+
+      <!-- Máy bơm chính 2 (Diesel) -->
+      <div class="bg-white rounded-xl p-3 border border-slate-200 shadow-sm flex items-center justify-between">
+        <div>
+          <h3 class="text-xs font-bold text-slate-800">Máy Bơm Chính 2 (Diesel/Dự phòng)</h3>
+          <p class="text-[11px] text-slate-400">Dầu nhớt, nhiên liệu, ắc quy đề nổ</p>
+        </div>
+        <div class="flex space-x-1.5">
+          <button type="button" onclick="setToggle('pump_main2', 'Đạt')" id="btn_pump_main2_pass" class="px-3.5 py-1.5 rounded-lg text-xs font-bold border toggle-active-pass transition">Đạt</button>
+          <button type="button" onclick="setToggle('pump_main2', 'Lỗi')" id="btn_pump_main2_fail" class="px-3.5 py-1.5 rounded-lg text-xs font-bold border border-slate-200 bg-slate-50 text-slate-600 transition">Lỗi</button>
+          <input type="hidden" id="pump_main2" value="Đạt">
+        </div>
+      </div>
+
+      <!-- Máy bơm bù áp (Jockey) -->
+      <div class="bg-white rounded-xl p-3 border border-slate-200 shadow-sm flex items-center justify-between">
+        <div>
+          <h3 class="text-xs font-bold text-slate-800">Bơm Bù Áp (Jockey Pump)</h3>
+          <p class="text-[11px] text-slate-400">Tự ngắt khi đạt áp lực cài đặt</p>
+        </div>
+        <div class="flex space-x-1.5">
+          <button type="button" onclick="setToggle('pump_jockey', 'Đạt')" id="btn_pump_jockey_pass" class="px-3.5 py-1.5 rounded-lg text-xs font-bold border toggle-active-pass transition">Đạt</button>
+          <button type="button" onclick="setToggle('pump_jockey', 'Lỗi')" id="btn_pump_jockey_fail" class="px-3.5 py-1.5 rounded-lg text-xs font-bold border border-slate-200 bg-slate-50 text-slate-600 transition">Lỗi</button>
+          <input type="hidden" id="pump_jockey" value="Đạt">
+        </div>
+      </div>
+
+      <!-- Đồng hồ áp lực đường ống -->
+      <div class="bg-white rounded-xl p-3 border border-slate-200 shadow-sm flex items-center justify-between">
+        <div>
+          <h3 class="text-xs font-bold text-slate-800">Đồng Hồ Áp Lực Hệ Thống</h3>
+          <p class="text-[11px] text-slate-400">Duy trì đủ dải áp (7 - 9 bar)</p>
+        </div>
+        <div class="flex space-x-1.5">
+          <button type="button" onclick="setToggle('pump_gauge', 'Đạt')" id="btn_pump_gauge_pass" class="px-3.5 py-1.5 rounded-lg text-xs font-bold border toggle-active-pass transition">Đạt</button>
+          <button type="button" onclick="setToggle('pump_gauge', 'Tụt áp')" id="btn_pump_gauge_fail" class="px-3.5 py-1.5 rounded-lg text-xs font-bold border border-slate-200 bg-slate-50 text-slate-600 transition">Tụt áp</button>
+          <input type="hidden" id="pump_gauge" value="Đạt">
+        </div>
+      </div>
+
+      <!-- Bể nước dự trữ PCCC -->
+      <div class="bg-white rounded-xl p-3 border border-slate-200 shadow-sm flex items-center justify-between">
+        <div>
+          <h3 class="text-xs font-bold text-slate-800">Mực Nước Bể Chứa PCCC</h3>
+          <p class="text-[11px] text-slate-400">Đầy bể (&gt;90% dung tích thiết kế)</p>
+        </div>
+        <div class="flex space-x-1.5">
+          <button type="button" onclick="setToggle('pump_tank', 'Đạt')" id="btn_pump_tank_pass" class="px-3.5 py-1.5 rounded-lg text-xs font-bold border toggle-active-pass transition">Đạt</button>
+          <button type="button" onclick="setToggle('pump_tank', 'Cạn')" id="btn_pump_tank_fail" class="px-3.5 py-1.5 rounded-lg text-xs font-bold border border-slate-200 bg-slate-50 text-slate-600 transition">Cạn</button>
+          <input type="hidden" id="pump_tank" value="Đạt">
+        </div>
+      </div>
+    </div>
+
+    <!-- ================= FORM 6: TỦ ĐIỀU KHIỂN BÁO CHÁY TRUNG TÂM ================= -->
+    <div id="form_Tu_Trung_Tam_PCCC" class="category-form hidden space-y-3">
+      <!-- Grid checks for central panel -->
+      <div class="bg-white rounded-xl p-3.5 border border-slate-200 shadow-sm space-y-2.5">
+        <h3 class="text-xs font-bold text-slate-800 uppercase tracking-wider">Trạng Thái Đèn Báo & Nguồn</h3>
+        
+        <!-- Đèn nguồn AC -->
+        <div class="flex items-center justify-between py-1 border-b border-slate-100">
+          <span class="text-xs font-medium text-slate-700">1. Đèn nguồn AC (Xanh)</span>
+          <div class="flex space-x-1">
+            <button type="button" onclick="setToggle('panel_ac', 'Đạt')" id="btn_panel_ac_pass" class="px-3 py-1 rounded text-xs font-bold border toggle-active-pass">Đạt</button>
+            <button type="button" onclick="setToggle('panel_ac', 'Lỗi')" id="btn_panel_ac_fail" class="px-3 py-1 rounded text-xs font-bold border border-slate-200 bg-slate-50 text-slate-600">Lỗi</button>
+            <input type="hidden" id="panel_ac" value="Đạt">
+          </div>
+        </div>
+
+        <!-- Đèn khu vực (Zone) -->
+        <div class="flex items-center justify-between py-1 border-b border-slate-100">
+          <span class="text-xs font-medium text-slate-700">2. Đèn hiển thị Zone</span>
+          <div class="flex space-x-1">
+            <button type="button" onclick="setToggle('panel_zone', 'Đạt')" id="btn_panel_zone_pass" class="px-3 py-1 rounded text-xs font-bold border toggle-active-pass">Đạt</button>
+            <button type="button" onclick="setToggle('panel_zone', 'Lỗi')" id="btn_panel_zone_fail" class="px-3 py-1 rounded text-xs font-bold border border-slate-200 bg-slate-50 text-slate-600">Lỗi</button>
+            <input type="hidden" id="panel_zone" value="Đạt">
+          </div>
+        </div>
+
+        <!-- Đèn báo cháy (Fire) -->
+        <div class="flex items-center justify-between py-1 border-b border-slate-100">
+          <span class="text-xs font-medium text-slate-700">3. Đèn báo cháy tổng</span>
+          <div class="flex space-x-1">
+            <button type="button" onclick="setToggle('panel_fire', 'Đạt')" id="btn_panel_fire_pass" class="px-3 py-1 rounded text-xs font-bold border toggle-active-pass">Đạt</button>
+            <button type="button" onclick="setToggle('panel_fire', 'Lỗi')" id="btn_panel_fire_fail" class="px-3 py-1 rounded text-xs font-bold border border-slate-200 bg-slate-50 text-slate-600">Lỗi</button>
+            <input type="hidden" id="panel_fire" value="Đạt">
+          </div>
+        </div>
+
+        <!-- Đèn báo lỗi (Trouble/Fault) -->
+        <div class="flex items-center justify-between py-1">
+          <span class="text-xs font-medium text-slate-700">4. Đèn báo lỗi hệ thống</span>
+          <div class="flex space-x-1">
+            <button type="button" onclick="setToggle('panel_trouble', 'Bình thường')" id="btn_panel_trouble_pass" class="px-3 py-1 rounded text-xs font-bold border toggle-active-pass">B.Thường</button>
+            <button type="button" onclick="setToggle('panel_trouble', 'Báo lỗi')" id="btn_panel_trouble_fail" class="px-3 py-1 rounded text-xs font-bold border border-slate-200 bg-slate-50 text-slate-600">Báo lỗi</button>
+            <input type="hidden" id="panel_trouble" value="Bình thường">
+          </div>
+        </div>
+      </div>
+
+      <!-- Công tắc chức năng & Ắc quy -->
+      <div class="bg-white rounded-xl p-3.5 border border-slate-200 shadow-sm space-y-2.5">
+        <h3 class="text-xs font-bold text-slate-800 uppercase tracking-wider">Công Tắc Vận Hành & Ắc Quy</h3>
+        
+        <!-- Công tắc bình điện -->
+        <div class="flex items-center justify-between py-1 border-b border-slate-100">
+          <span class="text-xs font-medium text-slate-700">5. Công tắc bình điện</span>
+          <div class="flex space-x-1">
+            <button type="button" onclick="setToggle('panel_bat_sw', 'Đạt')" id="btn_panel_bat_sw_pass" class="px-3 py-1 rounded text-xs font-bold border toggle-active-pass">Đạt</button>
+            <button type="button" onclick="setToggle('panel_bat_sw', 'Lỗi')" id="btn_panel_bat_sw_fail" class="px-3 py-1 rounded text-xs font-bold border border-slate-200 bg-slate-50 text-slate-600">Lỗi</button>
+            <input type="hidden" id="panel_bat_sw" value="Đạt">
+          </div>
+        </div>
+
+        <!-- Công tắc báo động -->
+        <div class="flex items-center justify-between py-1 border-b border-slate-100">
+          <span class="text-xs font-medium text-slate-700">6. Công tắc còi báo động</span>
+          <div class="flex space-x-1">
+            <button type="button" onclick="setToggle('panel_alarm_sw', 'Đạt')" id="btn_panel_alarm_sw_pass" class="px-3 py-1 rounded text-xs font-bold border toggle-active-pass">Đạt</button>
+            <button type="button" onclick="setToggle('panel_alarm_sw', 'Tắt/Lỗi')" id="btn_panel_alarm_sw_fail" class="px-3 py-1 rounded text-xs font-bold border border-slate-200 bg-slate-50 text-slate-600">Lỗi</button>
+            <input type="hidden" id="panel_alarm_sw" value="Đạt">
+          </div>
+        </div>
+
+        <!-- Công tắc kiểm tra cháy -->
+        <div class="flex items-center justify-between py-1 border-b border-slate-100">
+          <span class="text-xs font-medium text-slate-700">7. Công tắc Test cháy</span>
+          <div class="flex space-x-1">
+            <button type="button" onclick="setToggle('panel_test_sw', 'Đạt')" id="btn_panel_test_sw_pass" class="px-3 py-1 rounded text-xs font-bold border toggle-active-pass">Đạt</button>
+            <button type="button" onclick="setToggle('panel_test_sw', 'Lỗi')" id="btn_panel_test_sw_fail" class="px-3 py-1 rounded text-xs font-bold border border-slate-200 bg-slate-50 text-slate-600">Lỗi</button>
+            <input type="hidden" id="panel_test_sw" value="Đạt">
+          </div>
+        </div>
+
+        <!-- Ắc quy dự phòng -->
+        <div class="flex items-center justify-between py-1">
+          <span class="text-xs font-medium text-slate-700">8. Ắc quy dự phòng (24VDC)</span>
+          <div class="flex space-x-1">
+            <button type="button" onclick="setToggle('panel_battery', 'Đạt')" id="btn_panel_battery_pass" class="px-3 py-1 rounded text-xs font-bold border toggle-active-pass">Đạt</button>
+            <button type="button" onclick="setToggle('panel_battery', 'Chai/Yếu')" id="btn_panel_battery_fail" class="px-3 py-1 rounded text-xs font-bold border border-slate-200 bg-slate-50 text-slate-600">Yếu</button>
+            <input type="hidden" id="panel_battery" value="Đạt">
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ================= KẾT QUẢ ĐÁNH GIÁ CHUNG ================= -->
+    <div class="bg-white rounded-xl p-3.5 border border-slate-200 shadow-sm space-y-2.5">
+      <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider">Đánh Giá Tổng Thể *</label>
+      <div class="grid grid-cols-2 gap-2">
+        <button type="button" onclick="setFinalResult('ĐẠT')" id="btnFinalPass" class="py-2.5 px-3 rounded-lg border-2 border-emerald-600 bg-emerald-600 text-white font-extrabold text-xs flex items-center justify-center space-x-1.5 shadow transition">
+          <i data-lucide="check-circle" class="w-4 h-4"></i>
+          <span>ĐẠT TIÊU CHUẨN</span>
+        </button>
+        <button type="button" onclick="setFinalResult('HỎNG')" id="btnFinalFail" class="py-2.5 px-3 rounded-lg border border-slate-300 bg-slate-50 text-slate-600 font-bold text-xs flex items-center justify-center space-x-1.5 transition hover:bg-red-50 hover:text-red-600">
+          <i data-lucide="alert-triangle" class="w-4 h-4"></i>
+          <span>KHÔNG ĐẠT / HỎNG</span>
+        </button>
+      </div>
+      <input type="hidden" id="finalResultValue" value="ĐẠT">
+
+      <!-- Ghi chú & Đề xuất -->
+      <div>
+        <label class="block text-[11px] font-semibold text-slate-600 mb-1">Ghi Chú / Đề Xuất Khắc Phục</label>
+        <textarea id="inputRecommendation" rows="2" placeholder="Nhập yêu cầu nạp sạc, thay thế ron, sửa chữa..." class="w-full bg-slate-50 border border-slate-300 rounded-lg px-2.5 py-2 text-xs font-medium text-slate-800 outline-none focus:bg-white focus:border-pccc-600"></textarea>
+      </div>
+    </div>
+
+    <!-- ================= CHỤP ẢNH HIỆN TRƯỜNG / HƯ HỎNG ================= -->
+    <div class="bg-white rounded-xl p-3.5 border border-slate-200 shadow-sm space-y-2.5">
+      <div class="flex items-center justify-between">
+        <label class="text-xs font-bold text-slate-700 flex items-center gap-1.5">
+          <i data-lucide="camera" class="w-4 h-4 text-pccc-600"></i>
+          Hình Ảnh Hiện Trường (Hư hỏng nếu có)
+        </label>
+        <span class="text-[10px] text-slate-400">Tùy chọn</span>
+      </div>
+
+      <!-- File input for camera direct capture -->
+      <input type="file" id="cameraInput" accept="image/*" capture="environment" onchange="handlePhotoCapture(event)" class="hidden">
+
+      <!-- Upload / Preview Box -->
+      <div id="photoPlaceholder" onclick="triggerCamera()" class="border-2 border-dashed border-slate-300 hover:border-pccc-500 rounded-xl p-4 text-center cursor-pointer bg-slate-50/50 hover:bg-red-50/30 transition">
+        <div class="w-10 h-10 rounded-full bg-red-100 text-pccc-700 flex items-center justify-center mx-auto mb-1.5">
+          <i data-lucide="camera" class="w-5 h-5"></i>
+        </div>
+        <p class="text-xs font-bold text-slate-700">Chụp Ảnh Hoặc Chọn Tệp</p>
+        <p class="text-[11px] text-slate-400">Tự động nén ảnh nhanh gửi về Google Drive</p>
+      </div>
+
+      <!-- Image Preview Container -->
+      <div id="photoPreviewBox" class="hidden relative rounded-xl overflow-hidden border border-slate-200 bg-slate-900">
+        <img id="photoPreviewImg" src="" alt="Hiện trường PCCC" class="w-full h-44 object-cover">
+        <div class="absolute top-2 right-2 flex space-x-1.5">
+          <button onclick="removeCapturedPhoto()" class="w-7 h-7 rounded-full bg-black/60 text-white flex items-center justify-center hover:bg-black/80 transition" title="Xóa ảnh">
+            <i data-lucide="x" class="w-4 h-4"></i>
+          </button>
+        </div>
+        <div class="absolute bottom-2 left-2 bg-black/60 text-white text-[10px] px-2 py-0.5 rounded font-mono">
+          <span id="photoSizeLabel">~120 KB</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ================= NÚT GỬI BÁO CÁO (LARGE THUMB-FRIENDLY) ================= -->
+    <div class="pt-2">
+      <button id="btnSubmitInspection" onclick="submitCurrentInspection()" class="w-full py-3.5 px-4 bg-gradient-to-r from-red-600 to-pccc-700 hover:from-red-700 hover:to-pccc-800 active:scale-[0.98] text-white font-black text-sm tracking-wide rounded-xl shadow-lg shadow-red-600/30 flex items-center justify-center space-x-2 transition">
+        <i data-lucide="send" class="w-4 h-4"></i>
+        <span id="submitBtnText">LƯU & ĐỒNG BỘ VỀ GOOGLE SHEETS</span>
+      </button>
+    </div>
+  </main>
+
+  <!-- ================= BOTTOM NAVIGATION BAR ================= -->
+  <footer class="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 z-40 px-4 py-2 shadow-2xl">
+    <div class="max-w-lg mx-auto flex items-center justify-around">
+      <button onclick="switchBottomTab('form')" id="navBtn_form" class="flex flex-col items-center text-pccc-600 font-bold text-[10px] space-y-0.5">
+        <i data-lucide="clipboard-check" class="w-5 h-5"></i>
+        <span>Kiểm Tra</span>
+      </button>
+
+      <button onclick="openQrModal()" class="flex flex-col items-center text-slate-500 hover:text-pccc-600 text-[10px] space-y-0.5">
+        <div class="w-10 h-10 -mt-5 rounded-full bg-pccc-600 text-white flex items-center justify-center shadow-lg border-2 border-white active:scale-90 transition">
+          <i data-lucide="scan-line" class="w-5 h-5"></i>
+        </div>
+        <span class="font-bold text-slate-800">Quét QR</span>
+      </button>
+
+      <button onclick="openHistoryModal()" id="navBtn_history" class="flex flex-col items-center text-slate-500 hover:text-pccc-600 text-[10px] space-y-0.5 relative">
+        <i data-lucide="history" class="w-5 h-5"></i>
+        <span>Lịch Sử</span>
+        <span id="historyQueueDot" class="hidden absolute top-0 right-1 w-2 h-2 rounded-full bg-amber-500"></span>
+      </button>
+
+      <button onclick="openSettingsModal()" id="navBtn_settings" class="flex flex-col items-center text-slate-500 hover:text-pccc-600 text-[10px] space-y-0.5">
+        <i data-lucide="sliders" class="w-5 h-5"></i>
+        <span>Cài Đặt</span>
+      </button>
+    </div>
+  </footer>
+
+  <!-- ================= MODAL: QR CODE SCANNER ================= -->
+  <div id="qrScannerModal" class="hidden fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex flex-col items-center justify-center p-4">
+    <div class="bg-white rounded-2xl w-full max-w-sm overflow-hidden shadow-2xl flex flex-col max-h-[90vh]">
+      <!-- Header -->
+      <div class="px-4 py-3 bg-slate-900 text-white flex items-center justify-between">
+        <div class="flex items-center space-x-2">
+          <i data-lucide="camera" class="w-4 h-4 text-amber-400"></i>
+          <span class="text-xs font-bold uppercase tracking-wider">Quét Tem QR Thiết Bị</span>
+        </div>
+        <button onclick="closeQrModal()" class="text-slate-400 hover:text-white">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <!-- Camera Preview -->
+      <div class="p-3 bg-slate-950 flex flex-col items-center justify-center min-h-[260px] relative">
+        <div id="qr-reader" class="w-full overflow-hidden rounded-xl bg-black"></div>
+        <div id="qrScanningHint" class="text-center text-xs text-slate-300 mt-2">
+          Hướng camera vào tem QR dán trên bình hoặc tủ PCCC
+        </div>
+      </div>
+
+      <!-- Controls -->
+      <div class="p-3 bg-slate-50 flex items-center justify-between border-t border-slate-200 text-xs">
+        <label for="qrFileInput" class="cursor-pointer text-pccc-700 font-bold flex items-center space-x-1 hover:underline">
+          <i data-lucide="image" class="w-4 h-4"></i>
+          <span>Chọn ảnh QR</span>
+        </label>
+        <input type="file" id="qrFileInput" accept="image/*" onchange="scanQrFromImage(event)" class="hidden">
+
+        <button onclick="closeQrModal()" class="px-4 py-1.5 rounded-lg bg-slate-200 text-slate-700 font-bold hover:bg-slate-300">
+          Đóng
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= MODAL: SETTINGS & CONFIG ================= -->
+  <div id="settingsModal" class="hidden fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl w-full max-w-md overflow-hidden shadow-2xl">
+      <div class="px-4 py-3 bg-gradient-to-r from-slate-900 to-slate-800 text-white flex items-center justify-between">
+        <div class="flex items-center space-x-2">
+          <i data-lucide="settings" class="w-4 h-4 text-amber-400"></i>
+          <span class="text-xs font-bold uppercase tracking-wider">Cấu Hình Kết Nối Hệ Thống</span>
+        </div>
+        <button onclick="closeSettingsModal()" class="text-slate-400 hover:text-white">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <div class="p-4 space-y-3.5 max-h-[80vh] overflow-y-auto">
+        <!-- Google Apps Script URL -->
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1">
+            Google Apps Script Web App URL *
+          </label>
+          <input type="url" id="cfgApiUrl" placeholder="https://script.google.com/macros/s/.../exec" class="w-full bg-slate-50 border border-slate-300 rounded-lg px-2.5 py-2 text-xs font-mono text-slate-800 outline-none focus:bg-white focus:border-pccc-600">
+          <p class="text-[10px] text-slate-400 mt-1">Dán URL triển khai (Deploy as Web App) từ Apps Script của bạn.</p>
+        </div>
+
+        <!-- Inspector Name -->
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1">Tên Nhân Viên Kiểm Tra (HSE) *</label>
+          <input type="text" id="cfgInspector" placeholder="Ví dụ: Nguyễn Văn An - HSE" class="w-full bg-slate-50 border border-slate-300 rounded-lg px-2.5 py-2 text-xs font-semibold text-slate-800 outline-none focus:bg-white focus:border-pccc-600">
+        </div>
+
+        <!-- Action buttons: Ping & Load Master Data -->
+        <div class="pt-1 grid grid-cols-2 gap-2">
+          <button onclick="testApiConnection()" class="py-2 px-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-lg border border-slate-300 flex items-center justify-center space-x-1">
+            <i data-lucide="activity" class="w-3.5 h-3.5"></i>
+            <span>Test Kết Nối</span>
+          </button>
+          <button onclick="fetchMasterData()" class="py-2 px-2 bg-slate-800 hover:bg-slate-900 text-white font-bold text-xs rounded-lg flex items-center justify-center space-x-1">
+            <i data-lucide="download-cloud" class="w-3.5 h-3.5 text-amber-300"></i>
+            <span>Tải Thiết Bị</span>
+          </button>
+        </div>
+
+        <!-- Master Data summary -->
+        <div class="bg-slate-50 rounded-lg p-2.5 border border-slate-200 text-[11px] text-slate-600">
+          <div class="flex justify-between font-semibold">
+            <span>Thiết bị đã đồng bộ:</span>
+            <span id="cfgMasterCount" class="font-bold text-pccc-700">0 thiết bị</span>
+          </div>
+          <p class="text-[10px] text-slate-400 mt-0.5">Dữ liệu Master Data được lưu vào máy để tra cứu nhanh khi mất sóng.</p>
+        </div>
+      </div>
+
+      <div class="p-3 bg-slate-100 border-t border-slate-200 flex justify-end space-x-2">
+        <button onclick="closeSettingsModal()" class="px-4 py-1.5 rounded-lg bg-slate-200 text-slate-700 font-bold text-xs hover:bg-slate-300">Đóng</button>
+        <button onclick="saveSettings()" class="px-4 py-1.5 rounded-lg bg-pccc-600 text-white font-bold text-xs hover:bg-pccc-700 shadow">Lưu Cài Đặt</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= MODAL: RECENT INSPECTION LOGS ================= -->
+  <div id="historyModal" class="hidden fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl w-full max-w-md overflow-hidden shadow-2xl flex flex-col max-h-[85vh]">
+      <div class="px-4 py-3 bg-slate-900 text-white flex items-center justify-between">
+        <div class="flex items-center space-x-2">
+          <i data-lucide="history" class="w-4 h-4 text-amber-400"></i>
+          <span class="text-xs font-bold uppercase tracking-wider">Lịch Sử Kiểm Tra Gần Đây</span>
+        </div>
+        <button onclick="closeHistoryModal()" class="text-slate-400 hover:text-white">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <!-- Offline Queue Section -->
+      <div id="offlineQueueContainer" class="p-3 bg-amber-50 border-b border-amber-200 hidden">
+        <div class="flex items-center justify-between mb-1.5">
+          <span class="text-xs font-bold text-amber-900 flex items-center gap-1">
+            <i data-lucide="clock" class="w-3.5 h-3.5 text-amber-600"></i>
+            Hàng đợi Offline (<span id="offlineQueueListCount">0</span>)
+          </span>
+          <button onclick="syncOfflineQueue()" class="text-xs font-bold bg-amber-600 text-white px-2.5 py-0.5 rounded hover:bg-amber-700 shadow">
+            Đồng bộ ngay
+          </button>
+        </div>
+        <div id="offlineQueueList" class="space-y-1.5 max-h-28 overflow-y-auto text-xs"></div>
+      </div>
+
+      <!-- Online Recent Logs List -->
+      <div class="flex-1 p-3 overflow-y-auto space-y-2">
+        <div class="flex items-center justify-between pb-1">
+          <span class="text-[11px] font-bold text-slate-500 uppercase">20 Lượt Kiểm Tra Mới Nhất</span>
+          <button onclick="fetchRecentLogs()" class="text-xs text-pccc-700 font-bold flex items-center gap-1 hover:underline">
+            <i data-lucide="refresh-cw" class="w-3 h-3"></i> Tải lại
+          </button>
+        </div>
+        <div id="recentLogsList" class="space-y-2 text-xs">
+          <div class="text-center py-6 text-slate-400">Đang tải lịch sử...</div>
+        </div>
+      </div>
+
+      <div class="p-3 bg-slate-100 border-t border-slate-200 flex justify-end">
+        <button onclick="closeHistoryModal()" class="px-4 py-1.5 rounded-lg bg-slate-200 text-slate-700 font-bold text-xs hover:bg-slate-300">Đóng</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= TOAST NOTIFICATION CONTAINER ================= -->
+  <div id="toastContainer" class="fixed top-4 left-1/2 -translate-x-1/2 z-50 flex flex-col items-center space-y-2 pointer-events-none w-11/12 max-w-sm"></div>
+
+  <!-- ================= JAVASCRIPT APPLICATION CORE ================= -->
+  <script>
+    /**
+     * PCCC HSE APP STATE & CONSTANTS
+     */
+    const STORAGE_KEYS = {
+      API_URL: 'pccc_api_url',
+      INSPECTOR: 'pccc_inspector',
+      MASTER_DATA: 'pccc_master_data',
+      OFFLINE_QUEUE: 'pccc_offline_queue',
+      LAST_CATEGORY: 'pccc_last_category'
+    };
+
+    const CATEGORY_NAMES = {
+      Binh_Bot: 'Bình Bột Chữa Cháy',
+      Binh_CO2: 'Bình Khí CO2',
+      Chuong_BaoChay: 'Nút & Chuông Báo Cháy',
+      Tu_Vach_Tuong: 'Tủ Vòi Vách Tường',
+      Tram_Bom: 'Trạm Bơm PCCC',
+      Tu_Trung_Tam_PCCC: 'Tủ Trung Tâm Báo Cháy'
+    };
+
+    let currentCategory = 'Binh_Bot';
+    let masterData = [];
+    let offlineQueue = [];
+    let html5QrCodeScanner = null;
+    let currentCapturedBase64 = '';
+
+    // Initialize application
+    document.addEventListener('DOMContentLoaded', () => {
+      lucide.createIcons();
+      loadStoredSettings();
+      initNetworkListeners();
+      initCategoryTabs();
+      updateOfflineBadges();
+      loadCachedMasterData();
+
+      // Audio Beep generator for QR scanning
+      window.playBeep = () => {
+        try {
+          const ctx = new (window.AudioContext || window.webkitAudioContext)();
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.type = 'sine';
+          osc.frequency.value = 880; // A5 tone
+          gain.gain.setValueAtTime(0.2, ctx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.15);
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          osc.start();
+          osc.stop(ctx.currentTime + 0.15);
+        } catch (e) {}
+      };
+    });
+
+    /**
+     * SETTINGS & INITIALIZATION
+     */
+    function loadStoredSettings() {
+      const savedApi = localStorage.getItem(STORAGE_KEYS.API_URL) || '';
+      const savedInspector = localStorage.getItem(STORAGE_KEYS.INSPECTOR) || 'Kỹ Sư An Toàn HSE';
+      const savedCategory = localStorage.getItem(STORAGE_KEYS.LAST_CATEGORY) || 'Binh_Bot';
+
+      document.getElementById('cfgApiUrl').value = savedApi;
+      document.getElementById('cfgInspector').value = savedInspector;
+      document.getElementById('topBarInspectorName').innerText = savedInspector;
+
+      // Restore category
+      switchCategory(savedCategory);
+    }
+
+    function saveSettings() {
+      const apiUrl = document.getElementById('cfgApiUrl').value.trim();
+      const inspector = document.getElementById('cfgInspector').value.trim() || 'Kỹ Sư An Toàn HSE';
+
+      localStorage.setItem(STORAGE_KEYS.API_URL, apiUrl);
+      localStorage.setItem(STORAGE_KEYS.INSPECTOR, inspector);
+      document.getElementById('topBarInspectorName').innerText = inspector;
+
+      closeSettingsModal();
+      showToast('Đã lưu thông tin cấu hình thành công!', 'success');
+
+      // Tự động tải danh mục thiết bị nếu có URL
+      if (apiUrl) {
+        fetchMasterData();
+      }
+    }
+
+    /**
+     * NETWORK DETECTION & STATUS
+     */
+    function initNetworkListeners() {
+      const updateNetUI = () => {
+        const isOnline = navigator.onLine;
+        const badge = document.getElementById('netStatusBadge');
+        const text = document.getElementById('netStatusText');
+        const banner = document.getElementById('offlineBanner');
+
+        if (isOnline) {
+          badge.className = 'flex items-center space-x-1.5 px-2 py-1 rounded-full text-xs font-semibold bg-emerald-950/70 border border-emerald-500/40 text-emerald-300';
+          badge.querySelector('span').className = 'w-2 h-2 rounded-full bg-emerald-400 animate-pulse';
+          text.innerText = 'Online';
+          banner.classList.add('hidden');
+
+          // Auto-trigger sync if queue has items
+          if (offlineQueue.length > 0) {
+            showToast(`Đã có mạng trở lại! Có ${offlineQueue.length} phiếu chờ gửi.`, 'info');
+          }
+        } else {
+          badge.className = 'flex items-center space-x-1.5 px-2 py-1 rounded-full text-xs font-semibold bg-amber-950/80 border border-amber-500/40 text-amber-300';
+          badge.querySelector('span').className = 'w-2 h-2 rounded-full bg-amber-400';
+          text.innerText = 'Offline';
+          banner.classList.remove('hidden');
+        }
+      };
+
+      window.addEventListener('online', updateNetUI);
+      window.addEventListener('offline', updateNetUI);
+      updateNetUI();
+    }
+
+    /**
+     * CATEGORY SWITCHING & TABS
+     */
+    function initCategoryTabs() {
+      // Set default date for powder extinguisher
+      const today = new Date().toISOString().split('T')[0];
+      const botExp = document.getElementById('bot_expiry');
+      if (botExp && !botExp.value) botExp.value = today;
+    }
+
+    function switchCategory(catKey) {
+      currentCategory = catKey;
+      localStorage.setItem(STORAGE_KEYS.LAST_CATEGORY, catKey);
+
+      // Update Nav buttons styling
+      document.querySelectorAll('.category-tab').forEach(btn => {
+        btn.className = 'category-tab px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap flex items-center space-x-1.5 bg-slate-800 text-slate-300 hover:bg-slate-700 transition';
+      });
+      const activeBtn = document.getElementById(`tabBtn_${catKey}`);
+      if (activeBtn) {
+        activeBtn.className = 'category-tab px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap flex items-center space-x-1.5 bg-pccc-600 text-white shadow transition';
+      }
+
+      // Hide all category forms, show current
+      document.querySelectorAll('.category-form').forEach(f => f.classList.add('hidden'));
+      const activeForm = document.getElementById(`form_${catKey}`);
+      if (activeForm) activeForm.classList.remove('hidden');
+
+      // Update header badge
+      document.getElementById('categoryLabelBadge').innerText = CATEGORY_NAMES[catKey] || catKey;
+    }
+
+    /**
+     * MASTER DATA HANDLING (AUTOCOMPLETE & FAST LOOKUP)
+     */
+    function loadCachedMasterData() {
+      const raw = localStorage.getItem(STORAGE_KEYS.MASTER_DATA);
+      if (raw) {
+        try {
+          masterData = JSON.parse(raw);
+          populateMasterDatalist(masterData);
+        } catch (e) {}
+      }
+    }
+
+    function populateMasterDatalist(items) {
+      const datalist = document.getElementById('masterDeviceList');
+      datalist.innerHTML = '';
+      items.forEach(d => {
+        const opt = document.createElement('option');
+        opt.value = d.deviceId;
+        opt.innerText = `${d.deviceName || ''} (${d.location || ''})`;
+        datalist.appendChild(opt);
+      });
+      document.getElementById('cfgMasterCount').innerText = `${items.length} thiết bị`;
+    }
+
+    async function fetchMasterData() {
+      const apiUrl = localStorage.getItem(STORAGE_KEYS.API_URL);
+      if (!apiUrl) {
+        showToast('Vui lòng nhập Google Apps Script URL trước!', 'warning');
+        openSettingsModal();
+        return;
+      }
+
+      showToast('Đang tải danh mục thiết bị từ Google Sheets...', 'info');
+
+      try {
+        const res = await fetch(`${apiUrl}?action=getMasterData`);
+        const json = await res.json();
+        if (json.status === 'success' && Array.isArray(json.data)) {
+          masterData = json.data;
+          localStorage.setItem(STORAGE_KEYS.MASTER_DATA, JSON.stringify(masterData));
+          populateMasterDatalist(masterData);
+          showToast(`Đã đồng bộ ${masterData.length} thiết bị về máy!`, 'success');
+        } else {
+          showToast('Lỗi khi tải danh mục: ' + (json.message || 'Không rõ'), 'error');
+        }
+      } catch (err) {
+        showToast('Không thể kết nối máy chủ Google Sheets: ' + err.message, 'error');
+      }
+    }
+
+    function onDeviceSelected(deviceId) {
+      if (!deviceId) return;
+      const cleanId = deviceId.trim().toUpperCase();
+      document.getElementById('inputDeviceId').value = cleanId;
+
+      // Find in master data
+      const found = masterData.find(d => d.deviceId.toUpperCase() === cleanId);
+      if (found) {
+        // Auto fill location
+        if (found.location) document.getElementById('inputLocation').value = found.location;
+
+        // Auto switch category if matches
+        if (found.category) {
+          let targetCategory = '';
+          if (found.category.toLowerCase().includes('bot')) targetCategory = 'Binh_Bot';
+          else if (found.category.toLowerCase().includes('co2')) targetCategory = 'Binh_CO2';
+          else if (found.category.toLowerCase().includes('chuong') || found.category.toLowerCase().includes('bao')) targetCategory = 'Chuong_BaoChay';
+          else if (found.category.toLowerCase().includes('vach') || found.category.toLowerCase().includes('tu_vach')) targetCategory = 'Tu_Vach_Tuong';
+          else if (found.category.toLowerCase().includes('bom')) targetCategory = 'Tram_Bom';
+          else if (found.category.toLowerCase().includes('trung_tam')) targetCategory = 'Tu_Trung_Tam_PCCC';
+
+          if (targetCategory && targetCategory !== currentCategory) {
+            switchCategory(targetCategory);
+          }
+        }
+
+        // Fill standard weight
+        if (found.standardWeight && found.standardWeight !== '-') {
+          const std = parseFloat(found.standardWeight);
+          if (!isNaN(std)) {
+            if (document.getElementById('bot_standardWeight')) document.getElementById('bot_standardWeight').value = std;
+            if (document.getElementById('co2_standardWeight')) document.getElementById('co2_standardWeight').value = std;
+          }
+        }
+
+        // Fill expiry
+        if (found.inspectionExpiry && found.inspectionExpiry !== '-') {
+          if (document.getElementById('bot_expiry')) document.getElementById('bot_expiry').value = found.inspectionExpiry;
+        }
+
+        // Show meta bar
+        const metaBar = document.getElementById('deviceMetaBar');
+        metaBar.classList.remove('hidden');
+        document.getElementById('lblStandardWeight').innerHTML = `Chuẩn: <strong>${found.standardWeight || '--'}</strong> kg`;
+        document.getElementById('lblInspectionExpiry').innerHTML = `Hạn KĐ: <strong>${found.inspectionExpiry || '--'}</strong>`;
+
+        showToast(`Đã nhận diện: ${found.deviceName || cleanId}`, 'info');
+      }
+    }
+
+    /**
+     * QR CODE SCANNER (CAMERA & IMAGE FILE)
+     */
+    function openQrModal() {
+      const modal = document.getElementById('qrScannerModal');
+      modal.classList.remove('hidden');
+      lucide.createIcons();
+
+      // Start html5-qrcode
+      if (!html5QrCodeScanner) {
+        html5QrCodeScanner = new Html5Qrcode("qr-reader");
+      }
+
+      const config = { fps: 12, qrbox: { width: 220, height: 220 } };
+
+      html5QrCodeScanner.start(
+        { facingMode: "environment" },
+        config,
+        (decodedText) => {
+          // Success callback
+          handleQrResult(decodedText);
+          closeQrModal();
+        },
+        (errorMessage) => {
+          // Scanning frames, ignore error
+        }
+      ).catch(err => {
+        document.getElementById('qrScanningHint').innerText = "Không thể mở camera. Vui lòng cấp quyền hoặc chọn ảnh QR bên dưới.";
+      });
+    }
+
+    function closeQrModal() {
+      if (html5QrCodeScanner) {
+        html5QrCodeScanner.stop().then(() => {
+          document.getElementById('qrScannerModal').classList.add('hidden');
+        }).catch(() => {
+          document.getElementById('qrScannerModal').classList.add('hidden');
+        });
+      } else {
+        document.getElementById('qrScannerModal').classList.add('hidden');
+      }
+    }
+
+    function scanQrFromImage(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      if (!html5QrCodeScanner) {
+        html5QrCodeScanner = new Html5Qrcode("qr-reader");
+      }
+
+      html5QrCodeScanner.scanFile(file, true)
+        .then(decodedText => {
+          handleQrResult(decodedText);
+          closeQrModal();
+        })
+        .catch(err => {
+          showToast('Không đọc được mã QR trong ảnh này!', 'warning');
+        });
+    }
+
+    function handleQrResult(qrText) {
+      if (!qrText) return;
+      window.playBeep();
+      if (navigator.vibrate) navigator.vibrate(120);
+
+      // Check if QR text is JSON
+      try {
+        const json = JSON.parse(qrText);
+        if (json.deviceId) {
+          document.getElementById('inputDeviceId').value = json.deviceId;
+          if (json.location) document.getElementById('inputLocation').value = json.location;
+          if (json.category) switchCategory(json.category);
+          onDeviceSelected(json.deviceId);
+          showToast(`Đã quét mã: ${json.deviceId}`, 'success');
+          return;
+        }
+      } catch (e) {
+        // Plain text QR
+      }
+
+      // Treat as plain Device ID
+      const cleaned = qrText.trim();
+      document.getElementById('inputDeviceId').value = cleaned;
+      onDeviceSelected(cleaned);
+      showToast(`Đã quét mã: ${cleaned}`, 'success');
+    }
+
+    /**
+     * FORM INTERACTION HELPERS (TOGGLE BUTTONS, PRESSURE GAUGE, CO2 LOSS)
+     */
+    function setToggle(fieldId, value) {
+      const input = document.getElementById(fieldId);
+      if (!input) return;
+      input.value = value;
+
+      const btnPass = document.getElementById(`btn_${fieldId}_pass`);
+      const btnFail = document.getElementById(`btn_${fieldId}_fail`);
+
+      if (!btnPass || !btnFail) return;
+
+      if (value === 'ĐẠT' || value === 'Đạt' || value === 'Bình thường') {
+        btnPass.className = 'px-3.5 py-1.5 rounded-lg text-xs font-bold border toggle-active-pass transition';
+        btnFail.className = 'px-3.5 py-1.5 rounded-lg text-xs font-bold border border-slate-200 bg-slate-50 text-slate-600 transition';
+      } else {
+        btnPass.className = 'px-3.5 py-1.5 rounded-lg text-xs font-bold border border-slate-200 bg-slate-50 text-slate-600 transition';
+        btnFail.className = 'px-3.5 py-1.5 rounded-lg text-xs font-bold border toggle-active-fail transition';
+        // Auto recommend setting final result to Fail if an item failed
+        setFinalResult('HỎNG');
+      }
+    }
+
+    function setGaugeStatus(color) {
+      document.getElementById('bot_gaugeStatus').value = color;
+
+      const colors = ['Xanh', 'Đỏ', 'Vàng'];
+      colors.forEach(c => {
+        const btn = document.getElementById(`gauge_${c}`);
+        if (c === color) {
+          if (c === 'Xanh') {
+            btn.className = 'gauge-btn py-2.5 px-2 rounded-lg border-2 border-emerald-500 bg-emerald-600 text-white font-bold text-xs flex flex-col items-center justify-center transition shadow';
+          } else if (c === 'Đỏ') {
+            btn.className = 'gauge-btn py-2.5 px-2 rounded-lg border-2 border-red-500 bg-red-600 text-white font-bold text-xs flex flex-col items-center justify-center transition shadow';
+            setFinalResult('HỎNG');
+          } else if (c === 'Vàng') {
+            btn.className = 'gauge-btn py-2.5 px-2 rounded-lg border-2 border-amber-500 bg-amber-600 text-white font-bold text-xs flex flex-col items-center justify-center transition shadow';
+            setFinalResult('HỎNG');
+          }
+        } else {
+          btn.className = 'gauge-btn py-2.5 px-2 rounded-lg border border-slate-200 bg-slate-50 text-slate-700 font-semibold text-xs flex flex-col items-center justify-center transition hover:bg-slate-100';
+        }
+      });
+    }
+
+    function calculateCo2Loss() {
+      const std = parseFloat(document.getElementById('co2_standardWeight').value) || 0;
+      const act = parseFloat(document.getElementById('co2_actualWeight').value) || 0;
+
+      const display = document.getElementById('co2LossPercentDisplay');
+      const badge = document.getElementById('co2LossBadge');
+      const box = document.getElementById('co2CalcResultBox');
+
+      if (std <= 0 || act <= 0) {
+        display.innerText = '0.0 %';
+        badge.className = 'text-xs font-bold px-2.5 py-1 rounded bg-slate-200 text-slate-600';
+        badge.innerText = 'Chưa nhập cân nặng';
+        box.className = 'rounded-lg p-2.5 bg-slate-50 border border-slate-200 flex items-center justify-between';
+        return;
+      }
+
+      let loss = ((std - act) / std) * 100;
+      loss = Math.max(0, parseFloat(loss.toFixed(2)));
+      display.innerText = `${loss} %`;
+
+      if (loss > 10.0) {
+        badge.className = 'text-xs font-bold px-2.5 py-1 rounded bg-red-600 text-white pulse-alert shadow';
+        badge.innerText = '⚠️ CẢNH BÁO NẠP SẠC (>10%)';
+        box.className = 'rounded-lg p-2.5 bg-red-50 border-2 border-red-400 flex items-center justify-between';
+        setFinalResult('HỎNG');
+        document.getElementById('inputRecommendation').value = `Bình CO2 hao hụt ${loss}%, vượt ngưỡng cho phép (10%). Đề xuất xuất kho nạp sạc khí ngay!`;
+      } else {
+        badge.className = 'text-xs font-bold px-2.5 py-1 rounded bg-emerald-600 text-white';
+        badge.innerText = '✅ ĐẠT TIÊU CHUẨN';
+        box.className = 'rounded-lg p-2.5 bg-emerald-50 border border-emerald-300 flex items-center justify-between';
+      }
+    }
+
+    function setFinalResult(status) {
+      document.getElementById('finalResultValue').value = status;
+      const btnPass = document.getElementById('btnFinalPass');
+      const btnFail = document.getElementById('btnFinalFail');
+
+      if (status === 'ĐẠT') {
+        btnPass.className = 'py-2.5 px-3 rounded-lg border-2 border-emerald-600 bg-emerald-600 text-white font-extrabold text-xs flex items-center justify-center space-x-1.5 shadow transition';
+        btnFail.className = 'py-2.5 px-3 rounded-lg border border-slate-300 bg-slate-50 text-slate-600 font-bold text-xs flex items-center justify-center space-x-1.5 transition hover:bg-red-50 hover:text-red-600';
+      } else {
+        btnPass.className = 'py-2.5 px-3 rounded-lg border border-slate-300 bg-slate-50 text-slate-600 font-bold text-xs flex items-center justify-center space-x-1.5 transition hover:bg-emerald-50 hover:text-emerald-600';
+        btnFail.className = 'py-2.5 px-3 rounded-lg border-2 border-red-600 bg-red-600 text-white font-extrabold text-xs flex items-center justify-center space-x-1.5 shadow transition';
+      }
+    }
+
+    /**
+     * CAMERA & PHOTO COMPRESSION (MAX 1000px, 0.7 JPEG)
+     */
+    function triggerCamera() {
+      document.getElementById('cameraInput').click();
+    }
+
+    function handlePhotoCapture(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        const img = new Image();
+        img.onload = function() {
+          // Client-side downscaling
+          const canvas = document.createElement('canvas');
+          let width = img.width;
+          let height = img.height;
+          const maxDimension = 1000;
+
+          if (width > height && width > maxDimension) {
+            height = Math.round((height * maxDimension) / width);
+            width = maxDimension;
+          } else if (height > maxDimension) {
+            width = Math.round((width * maxDimension) / height);
+            height = maxDimension;
+          }
+
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, width, height);
+
+          // Compress to JPEG 0.7 quality
+          const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.72);
+          currentCapturedBase64 = compressedDataUrl;
+
+          // Display preview
+          document.getElementById('photoPlaceholder').classList.add('hidden');
+          const previewBox = document.getElementById('photoPreviewBox');
+          previewBox.classList.remove('hidden');
+          document.getElementById('photoPreviewImg').src = compressedDataUrl;
+
+          const sizeKb = Math.round((compressedDataUrl.length * 3 / 4) / 1024);
+          document.getElementById('photoSizeLabel').innerText = `~${sizeKb} KB (Đã nén)`;
+          lucide.createIcons();
+        };
+        img.src = e.target.result;
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function removeCapturedPhoto() {
+      currentCapturedBase64 = '';
+      document.getElementById('cameraInput').value = '';
+      document.getElementById('photoPlaceholder').classList.remove('hidden');
+      document.getElementById('photoPreviewBox').classList.add('hidden');
+    }
+
+    /**
+     * GATHER FORM DATA & SUBMISSION
+     */
+    function gatherCurrentFormData() {
+      const deviceId = document.getElementById('inputDeviceId').value.trim();
+      const location = document.getElementById('inputLocation').value.trim();
+      const inspector = localStorage.getItem(STORAGE_KEYS.INSPECTOR) || 'Kỹ Sư An Toàn';
+      const finalResult = document.getElementById('finalResultValue').value;
+      const recommendation = document.getElementById('inputRecommendation').value.trim();
+
+      if (!deviceId) {
+        showToast('Vui lòng nhập hoặc quét Mã Thiết Bị!', 'warning');
+        return null;
+      }
+
+      let specificData = {
+        deviceId,
+        location,
+        inspector,
+        finalResult,
+        recommendation,
+        photoBase64: currentCapturedBase64
+      };
+
+      switch (currentCategory) {
+        case 'Binh_Bot':
+          specificData.standardWeight = document.getElementById('bot_standardWeight').value;
+          specificData.gaugeStatus = document.getElementById('bot_gaugeStatus').value;
+          specificData.nozzleStatus = document.getElementById('bot_nozzle').value;
+          specificData.safetyPin = document.getElementById('bot_pin').value;
+          specificData.inspectionExpiry = document.getElementById('bot_expiry').value;
+          break;
+
+        case 'Binh_CO2':
+          specificData.standardWeight = document.getElementById('co2_standardWeight').value;
+          specificData.actualWeight = document.getElementById('co2_actualWeight').value;
+          specificData.nozzleStatus = document.getElementById('co2_nozzle').value;
+          specificData.safetyPin = document.getElementById('co2_pin').value;
+          break;
+
+        case 'Chuong_BaoChay':
+          specificData.deviceType = document.getElementById('alarm_deviceType').value;
+          specificData.manualButton = document.getElementById('alarm_btn').value;
+          specificData.alarmSound = document.getElementById('alarm_sound').value;
+          specificData.indicatorLight = document.getElementById('alarm_lamp').value;
+          specificData.resetLever = document.getElementById('alarm_reset').value;
+          break;
+
+        case 'Tu_Vach_Tuong':
+          specificData.valveWater = document.getElementById('hose_valve').value;
+          specificData.hoseLeakage = document.getElementById('hose_leak').value;
+          specificData.hoseCoupling = document.getElementById('hose_coupling').value;
+          specificData.nozzleAvailable = document.getElementById('nozzle_avail').value;
+          specificData.nozzleCoupling = document.getElementById('nozzle_coupling').value;
+          break;
+
+        case 'Tram_Bom':
+          specificData.powerSystem = document.getElementById('pump_power').value;
+          specificData.mainPump1 = document.getElementById('pump_main1').value;
+          specificData.mainPump2 = document.getElementById('pump_main2').value;
+          specificData.jockeyPump = document.getElementById('pump_jockey').value;
+          specificData.pressureGauge = document.getElementById('pump_gauge').value;
+          specificData.waterTank = document.getElementById('pump_tank').value;
+          break;
+
+        case 'Tu_Trung_Tam_PCCC':
+          specificData.acPowerLamp = document.getElementById('panel_ac').value;
+          specificData.zoneLamp = document.getElementById('panel_zone').value;
+          specificData.fireLamp = document.getElementById('panel_fire').value;
+          specificData.troubleLamp = document.getElementById('panel_trouble').value;
+          specificData.batterySwitch = document.getElementById('panel_bat_sw').value;
+          specificData.alarmSwitch = document.getElementById('panel_alarm_sw').value;
+          specificData.fireTestSwitch = document.getElementById('panel_test_sw').value;
+          specificData.backupBattery = document.getElementById('panel_battery').value;
+          break;
+      }
+
+      return {
+        category: currentCategory,
+        data: specificData,
+        queuedAt: new Date().toISOString()
+      };
+    }
+
+    async function submitCurrentInspection() {
+      const payload = gatherCurrentFormData();
+      if (!payload) return;
+
+      const submitBtn = document.getElementById('btnSubmitInspection');
+      const submitText = document.getElementById('submitBtnText');
+      const apiUrl = localStorage.getItem(STORAGE_KEYS.API_URL);
+
+      // Disable button while processing
+      submitBtn.disabled = true;
+      submitText.innerText = 'ĐANG ĐỒNG BỘ...';
+
+      // Check if online and URL is configured
+      if (!navigator.onLine || !apiUrl) {
+        // Save to offline queue
+        saveToOfflineQueue(payload);
+        resetFormAfterSubmit();
+        submitBtn.disabled = false;
+        submitText.innerText = 'LƯU & ĐỒNG BỘ VỀ GOOGLE SHEETS';
+        return;
+      }
+
+      try {
+        // Post as text/plain to avoid preflight CORS block on Google Apps Script
+        const response = await fetch(apiUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: JSON.stringify(payload)
+        });
+
+        const result = await response.json();
+
+        if (result.status === 'success') {
+          showToast(`Đã lưu thành công thiết bị ${payload.data.deviceId} vào Sheet!`, 'success');
+          resetFormAfterSubmit();
+        } else {
+          showToast(`Lỗi từ máy chủ: ${result.message}`, 'error');
+          // Save to offline queue as fallback
+          saveToOfflineQueue(payload);
+          resetFormAfterSubmit();
+        }
+      } catch (error) {
+        showToast('Mạng chậm hoặc lỗi kết nối. Đã lưu phiếu vào bộ nhớ ngoại tuyến.', 'warning');
+        saveToOfflineQueue(payload);
+        resetFormAfterSubmit();
+      } finally {
+        submitBtn.disabled = false;
+        submitText.innerText = 'LƯU & ĐỒNG BỘ VỀ GOOGLE SHEETS';
+      }
+    }
+
+    function resetFormAfterSubmit() {
+      document.getElementById('inputDeviceId').value = '';
+      document.getElementById('inputLocation').value = '';
+      document.getElementById('inputRecommendation').value = '';
+      document.getElementById('deviceMetaBar').classList.add('hidden');
+      removeCapturedPhoto();
+
+      // Reset CO2 inputs
+      const co2Actual = document.getElementById('co2_actualWeight');
+      if (co2Actual) {
+        co2Actual.value = '';
+        calculateCo2Loss();
+      }
+
+      // Reset final evaluation
+      setFinalResult('ĐẠT');
+
+      // Scroll smoothly to top
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    /**
+     * OFFLINE QUEUE MANAGEMENT (LOCALSTORAGE)
+     */
+    function saveToOfflineQueue(payload) {
+      loadOfflineQueue();
+      offlineQueue.push(payload);
+      localStorage.setItem(STORAGE_KEYS.OFFLINE_QUEUE, JSON.stringify(offlineQueue));
+      updateOfflineBadges();
+      showToast(`Đã lưu tạm vào máy (${payload.data.deviceId}). Sẽ tự đồng bộ khi có mạng.`, 'info');
+    }
+
+    function loadOfflineQueue() {
+      const raw = localStorage.getItem(STORAGE_KEYS.OFFLINE_QUEUE);
+      offlineQueue = raw ? JSON.parse(raw) : [];
+      return offlineQueue;
+    }
+
+    function updateOfflineBadges() {
+      loadOfflineQueue();
+      const count = offlineQueue.length;
+
+      const quickSyncBtn = document.getElementById('btnQuickSync');
+      const badgeText = document.getElementById('offlineCountBadge');
+      const dot = document.getElementById('historyQueueDot');
+
+      if (count > 0) {
+        quickSyncBtn.classList.remove('hidden');
+        quickSyncBtn.classList.add('flex');
+        badgeText.innerText = `${count} chờ gửi`;
+        dot.classList.remove('hidden');
+      } else {
+        quickSyncBtn.classList.add('hidden');
+        quickSyncBtn.classList.remove('flex');
+        dot.classList.add('hidden');
+      }
+    }
+
+    async function syncOfflineQueue() {
+      loadOfflineQueue();
+      if (offlineQueue.length === 0) {
+        showToast('Không có dữ liệu tồn đọng cần đồng bộ!', 'info');
+        return;
+      }
+
+      const apiUrl = localStorage.getItem(STORAGE_KEYS.API_URL);
+      if (!apiUrl) {
+        showToast('Vui lòng cài đặt URL Google Apps Script trước!', 'warning');
+        openSettingsModal();
+        return;
+      }
+
+      if (!navigator.onLine) {
+        showToast('Thiết bị đang không có kết nối Internet!', 'warning');
+        return;
+      }
+
+      showToast(`Đang đồng bộ ${offlineQueue.length} phiếu kiểm tra...`, 'info');
+
+      let successCount = 0;
+      let remainingQueue = [];
+
+      for (let i = 0; i < offlineQueue.length; i++) {
+        const item = offlineQueue[i];
+        try {
+          const res = await fetch(apiUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+            body: JSON.stringify(item)
+          });
+          const json = await res.json();
+          if (json.status === 'success') {
+            successCount++;
+          } else {
+            remainingQueue.push(item);
+          }
+        } catch (e) {
+          remainingQueue.push(item);
+        }
+      }
+
+      offlineQueue = remainingQueue;
+      localStorage.setItem(STORAGE_KEYS.OFFLINE_QUEUE, JSON.stringify(offlineQueue));
+      updateOfflineBadges();
+
+      if (successCount > 0) {
+        showToast(`Đã đồng bộ thành công ${successCount} phiếu về Google Sheets!`, 'success');
+      }
+      if (remainingQueue.length > 0) {
+        showToast(`Còn ${remainingQueue.length} phiếu chưa gửi được do mạng chập chờn.`, 'warning');
+      }
+    }
+
+    /**
+     * RECENT LOGS VIEWER
+     */
+    function openHistoryModal() {
+      document.getElementById('historyModal').classList.remove('hidden');
+      lucide.createIcons();
+      renderOfflineQueueList();
+      fetchRecentLogs();
+    }
+
+    function closeHistoryModal() {
+      document.getElementById('historyModal').classList.add('hidden');
+    }
+
+    function renderOfflineQueueList() {
+      loadOfflineQueue();
+      const container = document.getElementById('offlineQueueContainer');
+      const listEl = document.getElementById('offlineQueueList');
+      const countEl = document.getElementById('offlineQueueListCount');
+
+      if (offlineQueue.length === 0) {
+        container.classList.add('hidden');
+        return;
+      }
+
+      container.classList.remove('hidden');
+      countEl.innerText = offlineQueue.length;
+      listEl.innerHTML = '';
+
+      offlineQueue.forEach((item, idx) => {
+        const d = item.data;
+        const div = document.createElement('div');
+        div.className = 'p-2 rounded bg-white border border-amber-200 flex items-center justify-between shadow-xs';
+        div.innerHTML = `
+          <div>
+            <strong class="text-amber-900">${d.deviceId}</strong> - ${CATEGORY_NAMES[item.category] || item.category}
+            <span class="text-[10px] text-slate-400 block">${d.location || ''}</span>
+          </div>
+          <span class="text-[10px] font-bold px-1.5 py-0.5 rounded ${d.finalResult.includes('ĐẠT') ? 'bg-emerald-100 text-emerald-800' : 'bg-red-100 text-red-800'}">${d.finalResult}</span>
+        `;
+        listEl.appendChild(div);
+      });
+    }
+
+    async function fetchRecentLogs() {
+      const apiUrl = localStorage.getItem(STORAGE_KEYS.API_URL);
+      const listContainer = document.getElementById('recentLogsList');
+
+      if (!apiUrl) {
+        listContainer.innerHTML = '<div class="text-center py-4 text-slate-400">Vui lòng cấu hình Web App URL trong Cài đặt.</div>';
+        return;
+      }
+
+      listContainer.innerHTML = '<div class="text-center py-4 text-slate-400 animate-pulse">Đang tải dữ liệu từ Google Sheets...</div>';
+
+      try {
+        const res = await fetch(`${apiUrl}?action=getRecentLogs`);
+        const json = await res.json();
+
+        if (json.status === 'success' && Array.isArray(json.data)) {
+          if (json.data.length === 0) {
+            listContainer.innerHTML = '<div class="text-center py-6 text-slate-400">Chưa có lượt kiểm tra nào được ghi nhận.</div>';
+            return;
+          }
+
+          listContainer.innerHTML = '';
+          json.data.forEach(log => {
+            const isPass = String(log.result).includes('ĐẠT') || String(log.result).includes('Đat');
+            const item = document.createElement('div');
+            item.className = 'p-2.5 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-between';
+            item.innerHTML = `
+              <div class="min-w-0 flex-1 pr-2">
+                <div class="flex items-center space-x-1.5">
+                  <strong class="font-bold text-slate-800">${log.deviceId || 'N/A'}</strong>
+                  <span class="text-[10px] px-1.5 py-0.2 rounded bg-slate-200 text-slate-700 font-medium">${log.category}</span>
+                </div>
+                <p class="text-[11px] text-slate-500 truncate">${log.location || 'Vị trí không rõ'}</p>
+                <p class="text-[10px] text-slate-400">${log.timestamp || ''} • ${log.inspector || ''}</p>
+              </div>
+              <span class="text-[11px] font-bold px-2 py-1 rounded-lg ${isPass ? 'bg-emerald-100 text-emerald-800' : 'bg-red-100 text-red-800'} flex-shrink-0">
+                ${log.result}
+              </span>
+            `;
+            listContainer.appendChild(item);
+          });
+        } else {
+          listContainer.innerHTML = `<div class="text-center py-4 text-red-500">${json.message || 'Lỗi tải lịch sử'}</div>`;
+        }
+      } catch (err) {
+        listContainer.innerHTML = '<div class="text-center py-4 text-slate-400">Không thể tải lịch sử khi ngoại tuyến.</div>';
+      }
+    }
+
+    /**
+     * MODAL TOGGLES
+     */
+    function openSettingsModal() {
+      document.getElementById('settingsModal').classList.remove('hidden');
+      lucide.createIcons();
+    }
+
+    function closeSettingsModal() {
+      document.getElementById('settingsModal').classList.add('hidden');
+    }
+
+    async function testApiConnection() {
+      const url = document.getElementById('cfgApiUrl').value.trim();
+      if (!url) {
+        showToast('Vui lòng nhập URL Web App!', 'warning');
+        return;
+      }
+      showToast('Đang kiểm tra kết nối...', 'info');
+      try {
+        const res = await fetch(`${url}?action=ping`);
+        const json = await res.json();
+        if (json.status === 'success') {
+          showToast('Kết nối Google Sheets thành công! ✅', 'success');
+        } else {
+          showToast('Máy chủ trả về: ' + json.message, 'warning');
+        }
+      } catch (e) {
+        showToast('Không thể kết nối! Kiểm tra quyền truy cập Anyone.', 'error');
+      }
+    }
+
+    function switchBottomTab(tab) {
+      // Form view is main
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    /**
+     * TOAST NOTIFICATION UTILITY
+     */
+    function showToast(message, type = 'info') {
+      const container = document.getElementById('toastContainer');
+      const toast = document.createElement('div');
+
+      let bg = 'bg-slate-900 text-white';
+      let icon = 'info';
+
+      if (type === 'success') {
+        bg = 'bg-emerald-700 text-white';
+        icon = 'check-circle-2';
+      } else if (type === 'error') {
+        bg = 'bg-red-700 text-white';
+        icon = 'alert-circle';
+      } else if (type === 'warning') {
+        bg = 'bg-amber-600 text-white';
+        icon = 'alert-triangle';
+      }
+
+      toast.className = `flex items-center space-x-2 px-3.5 py-2.5 rounded-xl shadow-xl font-medium text-xs tracking-wide pointer-events-auto transition-all transform duration-300 translate-y-2 opacity-0 ${bg}`;
+      toast.innerHTML = `
+        <i data-lucide="${icon}" class="w-4 h-4 flex-shrink-0"></i>
+        <span>${message}</span>
+      `;
+
+      container.appendChild(toast);
+      lucide.createIcons();
+
+      // Trigger animation
+      setTimeout(() => {
+        toast.classList.remove('translate-y-2', 'opacity-0');
+      }, 10);
+
+      // Auto remove
+      setTimeout(() => {
+        toast.classList.add('translate-y-2', 'opacity-0');
+        setTimeout(() => toast.remove(), 300);
+      }, 3500);
+    }
+  </script>
+</body>
+</html>
