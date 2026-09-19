@@ -251,24 +251,24 @@
           <p class="text-xs text-slate-500 mt-0.5">Tổng hợp thời gian thực thông số kỹ thuật, tình trạng sẵn sàng và kiểm định</p>
         </div>
         <div class="flex items-center space-x-2">
-          <button onclick="refreshDashboardData()" class="px-3 py-2 rounded-lg bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 text-xs font-bold flex items-center gap-1.5 shadow-sm">
-            <i data-lucide="refresh-cw" class="w-3.5 h-3.5 text-slate-500"></i>
-            <span>Cập Nhật Dữ Liệu</span>
+          <button onclick="refreshAllData()" class="px-3.5 py-2 rounded-xl bg-white border border-slate-300 hover:bg-slate-50 active:scale-95 text-slate-700 text-xs font-bold flex items-center gap-1.5 shadow-sm transition">
+            <i id="btnRefreshIcon" data-lucide="refresh-cw" class="w-3.5 h-3.5 text-slate-500"></i>
+            <span>Làm Mới Dữ Liệu Thực Tế</span>
           </button>
-          <button onclick="navigateView('inspect')" class="px-3.5 py-2 rounded-lg bg-pccc-600 hover:bg-pccc-700 text-white text-xs font-bold flex items-center gap-1.5 shadow-md">
+          <button onclick="navigateView('inspect')" class="px-3.5 py-2 rounded-xl bg-pccc-600 hover:bg-pccc-700 active:scale-95 text-white text-xs font-bold flex items-center gap-1.5 shadow-md transition">
             <i data-lucide="plus-circle" class="w-3.5 h-3.5"></i>
             <span>Tạo Phiếu Kiểm Tra</span>
           </button>
         </div>
       </div>
 
-      <!-- KPI METRIC CARDS -->
+      <!-- KPI METRIC CARDS (CLICKABLE FOR FILTERING & NAVIGATION) -->
       <div class="grid grid-cols-2 md:grid-cols-4 gap-3 lg:gap-4">
-        <!-- Total Devices -->
-        <div class="bg-white rounded-2xl p-4 border border-slate-200 shadow-sm relative overflow-hidden">
+        <!-- Card 1: Total Devices -->
+        <div id="kpiCard_ALL" onclick="filterFromKpiCard('ALL')" class="kpi-card bg-white rounded-2xl p-4 border border-slate-200 shadow-sm relative overflow-hidden cursor-pointer hover:shadow-lg hover:border-slate-400 hover:-translate-y-1 active:scale-98 transition-all duration-200 group select-none ring-2 ring-pccc-600">
           <div class="flex items-center justify-between">
-            <span class="text-xs font-bold uppercase text-slate-400">Tổng Thiết Bị</span>
-            <div class="w-8 h-8 rounded-xl bg-slate-100 text-slate-700 flex items-center justify-center">
+            <span class="text-xs font-bold uppercase text-slate-500 group-hover:text-slate-800">Tổng Thiết Bị</span>
+            <div class="w-8 h-8 rounded-xl bg-slate-100 text-slate-700 flex items-center justify-center group-hover:bg-slate-200 transition">
               <i data-lucide="shield-check" class="w-4 h-4"></i>
             </div>
           </div>
@@ -276,17 +276,22 @@
             <span id="kpiTotalDevices" class="text-2xl lg:text-3xl font-black text-slate-800">--</span>
             <span class="text-xs font-semibold text-slate-400">thiết bị</span>
           </div>
-          <div class="mt-2 text-[11px] text-slate-500 flex items-center gap-1">
-            <span class="w-2 h-2 rounded-full bg-slate-400"></span>
-            <span>Đã số hóa trong hệ thống</span>
+          <div class="mt-2 text-[11px] text-slate-500 flex items-center justify-between">
+            <div class="flex items-center gap-1">
+              <span class="w-2 h-2 rounded-full bg-slate-400"></span>
+              <span>Đã số hóa</span>
+            </div>
+            <span class="text-[10px] font-bold text-pccc-700 group-hover:underline flex items-center gap-0.5">
+              Xem tất cả &darr;
+            </span>
           </div>
         </div>
 
-        <!-- Good / Ready Status -->
-        <div class="bg-white rounded-2xl p-4 border border-slate-200 shadow-sm relative overflow-hidden">
+        <!-- Card 2: Good / Ready Status -->
+        <div id="kpiCard_GOOD" onclick="filterFromKpiCard('GOOD')" class="kpi-card bg-white rounded-2xl p-4 border border-slate-200 shadow-sm relative overflow-hidden cursor-pointer hover:shadow-lg hover:border-emerald-400 hover:-translate-y-1 active:scale-98 transition-all duration-200 group select-none">
           <div class="flex items-center justify-between">
             <span class="text-xs font-bold uppercase text-emerald-600">Đạt Tiêu Chuẩn</span>
-            <div class="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
+            <div class="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center group-hover:bg-emerald-100 transition">
               <i data-lucide="check-circle-2" class="w-4 h-4"></i>
             </div>
           </div>
@@ -294,17 +299,22 @@
             <span id="kpiGoodDevices" class="text-2xl lg:text-3xl font-black text-emerald-600">--</span>
             <span id="kpiGoodPercent" class="text-xs font-bold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded">--%</span>
           </div>
-          <div class="mt-2 text-[11px] text-slate-500 flex items-center gap-1">
-            <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
-            <span>Sẵn sàng vận hành</span>
+          <div class="mt-2 text-[11px] text-slate-500 flex items-center justify-between">
+            <div class="flex items-center gap-1">
+              <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+              <span>Sẵn sàng vận hành</span>
+            </div>
+            <span class="text-[10px] font-bold text-emerald-600 group-hover:underline flex items-center gap-0.5">
+              Lọc Đạt &darr;
+            </span>
           </div>
         </div>
 
-        <!-- Needs Maintenance / Broken -->
-        <div class="bg-white rounded-2xl p-4 border border-slate-200 shadow-sm relative overflow-hidden">
+        <!-- Card 3: Needs Maintenance / Broken -->
+        <div id="kpiCard_WARN" onclick="filterFromKpiCard('WARN')" class="kpi-card bg-white rounded-2xl p-4 border border-slate-200 shadow-sm relative overflow-hidden cursor-pointer hover:shadow-lg hover:border-red-400 hover:-translate-y-1 active:scale-98 transition-all duration-200 group select-none">
           <div class="flex items-center justify-between">
             <span class="text-xs font-bold uppercase text-red-600">Cần Xử Lý / Hỏng</span>
-            <div class="w-8 h-8 rounded-xl bg-red-50 text-red-600 flex items-center justify-center">
+            <div class="w-8 h-8 rounded-xl bg-red-50 text-red-600 flex items-center justify-center group-hover:bg-red-100 transition">
               <i data-lucide="alert-triangle" class="w-4 h-4"></i>
             </div>
           </div>
@@ -312,17 +322,22 @@
             <span id="kpiBrokenDevices" class="text-2xl lg:text-3xl font-black text-red-600">--</span>
             <span class="text-xs font-semibold text-slate-400">cần nạp/sửa</span>
           </div>
-          <div class="mt-2 text-[11px] text-slate-500 flex items-center gap-1">
-            <span class="w-2 h-2 rounded-full bg-red-500"></span>
-            <span>Cảnh báo nạp sạc & hư hỏng</span>
+          <div class="mt-2 text-[11px] text-slate-500 flex items-center justify-between">
+            <div class="flex items-center gap-1">
+              <span class="w-2 h-2 rounded-full bg-red-500"></span>
+              <span>Cảnh báo nạp/hỏng</span>
+            </div>
+            <span class="text-[10px] font-bold text-red-600 group-hover:underline flex items-center gap-0.5">
+              Lọc Hỏng &darr;
+            </span>
           </div>
         </div>
 
-        <!-- Inspection Expiring Soon -->
-        <div class="bg-white rounded-2xl p-4 border border-slate-200 shadow-sm relative overflow-hidden">
+        <!-- Card 4: Inspection Expiring Soon -->
+        <div id="kpiCard_EXPIRING" onclick="filterFromKpiCard('EXPIRING')" class="kpi-card bg-white rounded-2xl p-4 border border-slate-200 shadow-sm relative overflow-hidden cursor-pointer hover:shadow-lg hover:border-amber-400 hover:-translate-y-1 active:scale-98 transition-all duration-200 group select-none">
           <div class="flex items-center justify-between">
             <span class="text-xs font-bold uppercase text-amber-600">Hết Hạn / Sắp Hạn</span>
-            <div class="w-8 h-8 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center">
+            <div class="w-8 h-8 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center group-hover:bg-amber-100 transition">
               <i data-lucide="clock" class="w-4 h-4"></i>
             </div>
           </div>
@@ -330,53 +345,60 @@
             <span id="kpiExpiringDevices" class="text-2xl lg:text-3xl font-black text-amber-600">--</span>
             <span class="text-xs font-semibold text-slate-400">trong 30 ngày</span>
           </div>
-          <div class="mt-2 text-[11px] text-slate-500 flex items-center gap-1">
-            <span class="w-2 h-2 rounded-full bg-amber-500"></span>
-            <span>Hạn KĐ cần gia hạn</span>
+          <div class="mt-2 text-[11px] text-slate-500 flex items-center justify-between">
+            <div class="flex items-center gap-1">
+              <span class="w-2 h-2 rounded-full bg-amber-500"></span>
+              <span>Hạn KĐ cần gia hạn</span>
+            </div>
+            <span class="text-[10px] font-bold text-amber-600 group-hover:underline flex items-center gap-0.5">
+              Lọc Hạn &darr;
+            </span>
           </div>
         </div>
       </div>
 
-      <!-- CATEGORY DISTRIBUTION BREAKDOWN -->
+      <!-- CATEGORY DISTRIBUTION BREAKDOWN (CLICKABLE TO FILTER & SCROLL) -->
       <div class="bg-white rounded-2xl p-4 lg:p-5 border border-slate-200 shadow-sm space-y-4">
-        <h3 class="text-sm font-bold text-slate-800 uppercase tracking-wider flex items-center justify-between">
-          <span>Phân Bố Thiết Bị Theo 6 Chủng Loại PCCC</span>
-          <span class="text-xs font-normal text-slate-400">Bấm vào nhóm để lọc</span>
-        </h3>
+        <div class="flex items-center justify-between">
+          <h3 class="text-sm font-bold text-slate-800 uppercase tracking-wider">
+            Phân Bố Thiết Bị Theo 6 Chủng Loại PCCC
+          </h3>
+          <span class="text-xs font-bold text-pccc-700 bg-red-50 px-2 py-0.5 rounded">Bấm vào nhóm để xem danh sách</span>
+        </div>
 
         <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
           <!-- Binh Bot -->
-          <div onclick="filterDeviceTableByCategory('Binh_Bot')" class="cat-stat-card cursor-pointer p-3 rounded-xl bg-slate-50 hover:bg-red-50 border border-slate-200 hover:border-red-300 transition text-center group">
+          <div id="catCard_Binh_Bot" onclick="filterDeviceTableByCategory('Binh_Bot')" class="cat-stat-card cursor-pointer p-3 rounded-xl bg-slate-50 hover:bg-red-50 border border-slate-200 hover:border-red-300 hover:shadow-md transition text-center group select-none">
             <span class="text-2xl block mb-1">🧯</span>
             <p class="text-xs font-bold text-slate-700 group-hover:text-pccc-700">Bình Bột</p>
             <span id="stat_Binh_Bot" class="text-base font-extrabold text-slate-900 block mt-0.5">0</span>
           </div>
           <!-- Binh CO2 -->
-          <div onclick="filterDeviceTableByCategory('Binh_CO2')" class="cat-stat-card cursor-pointer p-3 rounded-xl bg-slate-50 hover:bg-orange-50 border border-slate-200 hover:border-orange-300 transition text-center group">
+          <div id="catCard_Binh_CO2" onclick="filterDeviceTableByCategory('Binh_CO2')" class="cat-stat-card cursor-pointer p-3 rounded-xl bg-slate-50 hover:bg-orange-50 border border-slate-200 hover:border-orange-300 hover:shadow-md transition text-center group select-none">
             <span class="text-2xl block mb-1">❄️</span>
             <p class="text-xs font-bold text-slate-700 group-hover:text-orange-700">Bình CO2</p>
             <span id="stat_Binh_CO2" class="text-base font-extrabold text-slate-900 block mt-0.5">0</span>
           </div>
           <!-- Chuong Bao Chay -->
-          <div onclick="filterDeviceTableByCategory('Chuong_BaoChay')" class="cat-stat-card cursor-pointer p-3 rounded-xl bg-slate-50 hover:bg-yellow-50 border border-slate-200 hover:border-yellow-300 transition text-center group">
+          <div id="catCard_Chuong_BaoChay" onclick="filterDeviceTableByCategory('Chuong_BaoChay')" class="cat-stat-card cursor-pointer p-3 rounded-xl bg-slate-50 hover:bg-yellow-50 border border-slate-200 hover:border-yellow-300 hover:shadow-md transition text-center group select-none">
             <span class="text-2xl block mb-1">🔔</span>
             <p class="text-xs font-bold text-slate-700 group-hover:text-yellow-700">Báo Cháy</p>
             <span id="stat_Chuong_BaoChay" class="text-base font-extrabold text-slate-900 block mt-0.5">0</span>
           </div>
           <!-- Tu Vach Tuong -->
-          <div onclick="filterDeviceTableByCategory('Tu_Vach_Tuong')" class="cat-stat-card cursor-pointer p-3 rounded-xl bg-slate-50 hover:bg-blue-50 border border-slate-200 hover:border-blue-300 transition text-center group">
+          <div id="catCard_Tu_Vach_Tuong" onclick="filterDeviceTableByCategory('Tu_Vach_Tuong')" class="cat-stat-card cursor-pointer p-3 rounded-xl bg-slate-50 hover:bg-blue-50 border border-slate-200 hover:border-blue-300 hover:shadow-md transition text-center group select-none">
             <span class="text-2xl block mb-1">🚒</span>
             <p class="text-xs font-bold text-slate-700 group-hover:text-blue-700">Tủ Vách Tường</p>
             <span id="stat_Tu_Vach_Tuong" class="text-base font-extrabold text-slate-900 block mt-0.5">0</span>
           </div>
           <!-- Tram Bom -->
-          <div onclick="filterDeviceTableByCategory('Tram_Bom')" class="cat-stat-card cursor-pointer p-3 rounded-xl bg-slate-50 hover:bg-emerald-50 border border-slate-200 hover:border-emerald-300 transition text-center group">
+          <div id="catCard_Tram_Bom" onclick="filterDeviceTableByCategory('Tram_Bom')" class="cat-stat-card cursor-pointer p-3 rounded-xl bg-slate-50 hover:bg-emerald-50 border border-slate-200 hover:border-emerald-300 hover:shadow-md transition text-center group select-none">
             <span class="text-2xl block mb-1">⚙️</span>
             <p class="text-xs font-bold text-slate-700 group-hover:text-emerald-700">Trạm Bơm</p>
             <span id="stat_Tram_Bom" class="text-base font-extrabold text-slate-900 block mt-0.5">0</span>
           </div>
           <!-- Tu Trung Tam -->
-          <div onclick="filterDeviceTableByCategory('Tu_Trung_Tam_PCCC')" class="cat-stat-card cursor-pointer p-3 rounded-xl bg-slate-50 hover:bg-purple-50 border border-slate-200 hover:border-purple-300 transition text-center group">
+          <div id="catCard_Tu_Trung_Tam_PCCC" onclick="filterDeviceTableByCategory('Tu_Trung_Tam_PCCC')" class="cat-stat-card cursor-pointer p-3 rounded-xl bg-slate-50 hover:bg-purple-50 border border-slate-200 hover:border-purple-300 hover:shadow-md transition text-center group select-none">
             <span class="text-2xl block mb-1">🖥️</span>
             <p class="text-xs font-bold text-slate-700 group-hover:text-purple-700">Tủ Trung Tâm</p>
             <span id="stat_Tu_Trung_Tam" class="text-base font-extrabold text-slate-900 block mt-0.5">0</span>
@@ -385,12 +407,15 @@
       </div>
 
       <!-- MASTER EQUIPMENT STATUS TABLE -->
-      <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden space-y-3 p-4">
+      <div id="deviceTableSection" class="scroll-mt-4 bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden space-y-3 p-4">
         <!-- Table Search & Filter Bar -->
         <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
           <div>
-            <h3 class="text-sm font-bold text-slate-800 uppercase tracking-wider">Danh Mục & Tình Trạng Thiết Bị</h3>
-            <p class="text-xs text-slate-400">Trích xuất trực tiếp từ Tab Master Data "Danh_Muc_Thiet_Bi"</p>
+            <h3 class="text-sm font-bold text-slate-800 uppercase tracking-wider flex items-center gap-2">
+              <span>Danh Mục & Tình Trạng Thiết Bị Thực Tế</span>
+              <span id="activeFilterBadge" class="hidden px-2 py-0.5 rounded-full text-[10px] font-bold bg-pccc-100 text-pccc-700">Đang lọc</span>
+            </h3>
+            <p class="text-xs text-slate-400">Dữ liệu kết hợp giữa Master Data và Nhật ký kiểm định thực tế mới nhất</p>
           </div>
 
           <div class="flex flex-wrap items-center gap-2">
@@ -403,20 +428,27 @@
             <!-- Category Filter Dropdown -->
             <select id="deviceTableCatFilter" onchange="renderDeviceTable()" class="bg-slate-50 border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs font-semibold text-slate-700 outline-none">
               <option value="ALL">Tất cả chủng loại</option>
-              <option value="Binh_Bot">Bình Bột</option>
-              <option value="Binh_CO2">Bình CO2</option>
-              <option value="Chuong_BaoChay">Báo Cháy</option>
-              <option value="Tu_Vach_Tuong">Tủ Vách Tường</option>
-              <option value="Tram_Bom">Trạm Bơm</option>
-              <option value="Tu_Trung_Tam_PCCC">Tủ Trung Tâm</option>
+              <option value="Binh_Bot">🧯 Bình Bột</option>
+              <option value="Binh_CO2">❄️ Bình CO2</option>
+              <option value="Chuong_BaoChay">🔔 Báo Cháy</option>
+              <option value="Tu_Vach_Tuong">🚒 Tủ Vách Tường</option>
+              <option value="Tram_Bom">⚙️ Trạm Bơm</option>
+              <option value="Tu_Trung_Tam_PCCC">🖥️ Tủ Trung Tâm</option>
             </select>
 
             <!-- Status Filter -->
             <select id="deviceTableStatusFilter" onchange="renderDeviceTable()" class="bg-slate-50 border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs font-semibold text-slate-700 outline-none">
-              <option value="ALL">Tất cả trạng thái</option>
-              <option value="GOOD">Đạt / Hoạt động</option>
-              <option value="WARN">Cần xử lý / Hỏng</option>
+              <option value="ALL">Tất cả tình trạng</option>
+              <option value="GOOD">✅ Đạt chuẩn / Hoạt động tốt</option>
+              <option value="WARN">⚠️ Cần xử lý / Hỏng / Cảnh báo</option>
+              <option value="EXPIRING">📅 Hết hạn / Sắp hết hạn (≤ 30 ngày)</option>
+              <option value="UNCHECKED">⚪ Chưa kiểm tra đợt này</option>
             </select>
+
+            <!-- Reset Filter Button -->
+            <button onclick="filterFromKpiCard('ALL')" class="p-1.5 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg text-xs" title="Xóa bộ lọc, hiện tất cả">
+              <i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i>
+            </button>
           </div>
         </div>
 
@@ -431,7 +463,7 @@
                 <th class="px-3 py-2.5">Vị Trí Đặt</th>
                 <th class="px-3 py-2.5">Chuẩn Kỹ Thuật</th>
                 <th class="px-3 py-2.5">Hạn Kiểm Định</th>
-                <th class="px-3 py-2.5">Tình Trạng</th>
+                <th class="px-3 py-2.5">Tình Trạng &amp; Lần KT Thực Tế</th>
                 <th class="px-3 py-2.5 text-right">Thao Tác</th>
               </tr>
             </thead>
@@ -1614,7 +1646,87 @@
     }
 
     /**
-     * DASHBOARD LOGIC & STATISTICS
+     * ROBUST DATE PARSER FOR VIETNAMESE & ISO DATE FORMATS
+     * Supports: DD/MM/YYYY, DD-MM-YYYY, YYYY-MM-DD, YYYY/MM/DD, Date objects, etc.
+     */
+    function parseInspectionDate(dateVal) {
+      if (!dateVal || dateVal === '-' || dateVal === 'N/A') return null;
+      if (dateVal instanceof Date) return isNaN(dateVal.getTime()) ? null : dateVal;
+
+      const str = String(dateVal).trim();
+      if (!str) return null;
+
+      // Match DD/MM/YYYY or DD-MM-YYYY (Very common in Vietnam)
+      const dmyMatch = str.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})/);
+      if (dmyMatch) {
+        const day = parseInt(dmyMatch[1], 10);
+        const month = parseInt(dmyMatch[2], 10) - 1;
+        const year = parseInt(dmyMatch[3], 10);
+        const d = new Date(year, month, day);
+        if (!isNaN(d.getTime())) return d;
+      }
+
+      // Match YYYY-MM-DD or YYYY/MM/DD
+      const ymdMatch = str.match(/^(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})/);
+      if (ymdMatch) {
+        const year = parseInt(ymdMatch[1], 10);
+        const month = parseInt(ymdMatch[2], 10) - 1;
+        const day = parseInt(ymdMatch[3], 10);
+        const d = new Date(year, month, day);
+        if (!isNaN(d.getTime())) return d;
+      }
+
+      // Fallback Date.parse
+      const d = new Date(str);
+      return isNaN(d.getTime()) ? null : d;
+    }
+
+    /**
+     * BUILD LATEST INSPECTION MAP BY DEVICE ID
+     * Combines server inspectionLogs and pending offlineQueue field inspections
+     */
+    function getLatestInspectionMap() {
+      const map = {};
+
+      // 1. Process server inspection logs
+      if (Array.isArray(inspectionLogs)) {
+        for (let i = 0; i < inspectionLogs.length; i++) {
+          const log = inspectionLogs[i];
+          if (log && log.deviceId) {
+            const key = String(log.deviceId).trim().toUpperCase();
+            if (!map[key]) {
+              map[key] = log;
+            }
+          }
+        }
+      }
+
+      // 2. Process offline queue (most recent field inspections done on device)
+      if (Array.isArray(offlineQueue)) {
+        for (let i = offlineQueue.length - 1; i >= 0; i--) {
+          const item = offlineQueue[i];
+          if (item && item.data && item.data.deviceId) {
+            const key = String(item.data.deviceId).trim().toUpperCase();
+            map[key] = {
+              deviceId: item.data.deviceId,
+              timestamp: item.queuedAt ? new Date(item.queuedAt).toLocaleString('vi-VN') : 'Vừa xong',
+              category: item.category,
+              result: item.data.finalResult || 'ĐẠT',
+              location: item.data.location || '',
+              inspector: item.data.inspector || '',
+              recommendation: item.data.recommendation || '',
+              photoUrl: item.data.photoBase64 || '',
+              isOffline: true
+            };
+          }
+        }
+      }
+
+      return map;
+    }
+
+    /**
+     * DASHBOARD LOGIC & STATISTICS (CALCULATED ACCORDING TO REAL INSPECTIONS)
      */
     function refreshDashboardData() {
       const total = masterData.length;
@@ -1631,11 +1743,12 @@
         Tu_Trung_Tam_PCCC: 0
       };
 
-      const now = new Date().getTime();
-      const thirtyDaysMs = 30 * 24 * 60 * 60 * 1000;
+      const now = new Date();
+      const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+      const latestInspectionMap = getLatestInspectionMap();
 
       masterData.forEach(d => {
-        // Count category
+        // 1. Count category
         let catKey = d.category || 'Binh_Bot';
         if (catKey.includes('Bot')) catKey = 'Binh_Bot';
         else if (catKey.includes('CO2')) catKey = 'Binh_CO2';
@@ -1646,21 +1759,69 @@
 
         if (catCounts[catKey] !== undefined) catCounts[catKey]++;
 
-        // Status check
-        const st = String(d.status || '').toLowerCase();
-        if (st.includes('hỏng') || st.includes('xử lý') || st.includes('cảnh báo')) {
+        // 2. Real-time Status Evaluation
+        const devKey = String(d.deviceId || '').trim().toUpperCase();
+        const latestCheck = latestInspectionMap[devKey];
+
+        let computedStatus = 'GOOD';
+        let latestCheckText = 'Chưa kiểm tra đợt này';
+        let isDefective = false;
+
+        if (latestCheck) {
+          const res = String(latestCheck.result || '').toUpperCase();
+          if (res.includes('HỎNG') || res.includes('CẢNH BÁO') || res.includes('KHÔNG') || res.includes('LỖI') || res.includes('RÒ RỈ') || res.includes('TỤT ÁP')) {
+            computedStatus = 'WARN';
+            isDefective = true;
+            latestCheckText = `⚠️ ${latestCheck.result} (${latestCheck.timestamp})`;
+          } else {
+            computedStatus = 'GOOD';
+            latestCheckText = `✅ ĐẠT (${latestCheck.timestamp})`;
+          }
+        } else {
+          // Fallback to Master Data status in Google Sheet
+          const st = String(d.status || '').toLowerCase();
+          if (st.includes('hỏng') || st.includes('xử lý') || st.includes('cảnh báo') || st.includes('kém')) {
+            computedStatus = 'WARN';
+            isDefective = true;
+            latestCheckText = '⚠️ ' + (d.status || 'CẦN XỬ LÝ');
+          } else if (st.includes('chưa') || st.includes('chua')) {
+            computedStatus = 'UNCHECKED';
+            latestCheckText = '⚪ Chưa kiểm tra';
+          } else {
+            computedStatus = 'GOOD';
+            latestCheckText = '✅ ' + (d.status || 'Hoạt động tốt');
+          }
+        }
+
+        d._computedStatus = computedStatus;
+        d._latestCheckText = latestCheckText;
+
+        if (isDefective) {
           brokenCount++;
         } else {
           goodCount++;
         }
 
-        // Expiry check
-        if (d.inspectionExpiry && d.inspectionExpiry !== '-') {
-          const expTime = new Date(d.inspectionExpiry).getTime();
-          if (!isNaN(expTime) && (expTime - now <= thirtyDaysMs)) {
+        // 3. Expiry Date Evaluation
+        const expDate = parseInspectionDate(d.inspectionExpiry);
+        let expiryStatus = 'none';
+        let diffDays = null;
+
+        if (expDate) {
+          diffDays = Math.ceil((expDate.getTime() - todayStart) / (1000 * 60 * 60 * 24));
+          if (diffDays < 0) {
+            expiryStatus = 'expired'; // Quá hạn
             expiringCount++;
+          } else if (diffDays <= 30) {
+            expiryStatus = 'expiring'; // Sắp hết hạn trong 30 ngày
+            expiringCount++;
+          } else {
+            expiryStatus = 'valid'; // Còn hạn dài
           }
         }
+
+        d._expiryStatus = expiryStatus;
+        d._expiryDiffDays = diffDays;
       });
 
       // Update KPI Cards
@@ -1682,11 +1843,108 @@
       renderDeviceTable();
     }
 
-    function filterDeviceTableByCategory(catKey) {
-      document.getElementById('deviceTableCatFilter').value = catKey;
+    /**
+     * CLICK HANDLER FOR THE 4 KPI CARDS
+     * Scrolls smoothly down to the equipment table and filters accordingly!
+     */
+    function filterFromKpiCard(statusType) {
+      if (currentView !== 'dashboard') {
+        navigateView('dashboard');
+      }
+
+      const stFilter = document.getElementById('deviceTableStatusFilter');
+      const catFilter = document.getElementById('deviceTableCatFilter');
+      const searchInput = document.getElementById('deviceTableSearch');
+      const badge = document.getElementById('activeFilterBadge');
+
+      if (statusType === 'ALL') {
+        if (stFilter) stFilter.value = 'ALL';
+        if (catFilter) catFilter.value = 'ALL';
+        if (searchInput) searchInput.value = '';
+        if (badge) badge.classList.add('hidden');
+        showToast('Đang hiển thị toàn bộ thiết bị trong nhà máy', 'info');
+      } else if (statusType === 'GOOD') {
+        if (stFilter) stFilter.value = 'GOOD';
+        if (badge) {
+          badge.innerText = 'Đang lọc: Đạt Chuẩn';
+          badge.className = 'px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800';
+          badge.classList.remove('hidden');
+        }
+        showToast('Đang lọc các thiết bị ĐẠT TIÊU CHUẨN', 'info');
+      } else if (statusType === 'WARN') {
+        if (stFilter) stFilter.value = 'WARN';
+        if (badge) {
+          badge.innerText = 'Đang lọc: Cần Xử Lý / Hỏng';
+          badge.className = 'px-2 py-0.5 rounded-full text-[10px] font-bold bg-red-100 text-red-800';
+          badge.classList.remove('hidden');
+        }
+        showToast('Đang lọc các thiết bị CẦN XỬ LÝ / HỎNG HÓC', 'warning');
+      } else if (statusType === 'EXPIRING') {
+        if (stFilter) stFilter.value = 'EXPIRING';
+        if (badge) {
+          badge.innerText = 'Đang lọc: Quá Hạn & Sắp Hết Hạn';
+          badge.className = 'px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800';
+          badge.classList.remove('hidden');
+        }
+        showToast('Đang lọc các thiết bị QUÁ HẠN hoặc SẮP HẾT HẠN (≤ 30 ngày)', 'warning');
+      }
+
+      // Highlight the clicked KPI Card
+      ['ALL', 'GOOD', 'WARN', 'EXPIRING'].forEach(t => {
+        const card = document.getElementById(`kpiCard_${t}`);
+        if (card) {
+          if (t === statusType) {
+            card.classList.add('ring-2', 'ring-pccc-600', 'shadow-md');
+          } else {
+            card.classList.remove('ring-2', 'ring-pccc-600', 'shadow-md');
+          }
+        }
+      });
+
       renderDeviceTable();
+
+      // Smooth scroll to the table section
+      setTimeout(() => {
+        const tableEl = document.getElementById('deviceTableSection');
+        if (tableEl) {
+          tableEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      }, 50);
     }
 
+    /**
+     * CLICK HANDLER FOR CATEGORY CARDS
+     */
+    function filterDeviceTableByCategory(catKey) {
+      if (currentView !== 'dashboard') {
+        navigateView('dashboard');
+      }
+      const catFilter = document.getElementById('deviceTableCatFilter');
+      if (catFilter) catFilter.value = catKey;
+
+      const badge = document.getElementById('activeFilterBadge');
+      if (badge) {
+        badge.innerText = `Chủng loại: ${CATEGORY_MAP[catKey]?.short || catKey}`;
+        badge.className = 'px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-100 text-blue-800';
+        badge.classList.remove('hidden');
+      }
+
+      renderDeviceTable();
+
+      // Smooth scroll to table
+      setTimeout(() => {
+        const tableEl = document.getElementById('deviceTableSection');
+        if (tableEl) {
+          tableEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      }, 50);
+
+      showToast(`Đang lọc nhóm: ${CATEGORY_MAP[catKey]?.label || catKey}`, 'info');
+    }
+
+    /**
+     * RENDER EQUIPMENT TABLE WITH EXPIRY & REAL INSPECTION BADGES
+     */
     function renderDeviceTable() {
       const search = (document.getElementById('deviceTableSearch').value || '').toLowerCase().trim();
       const catFilter = document.getElementById('deviceTableCatFilter').value;
@@ -1700,7 +1958,8 @@
         const matchSearch = !search || 
           (d.deviceId && d.deviceId.toLowerCase().includes(search)) ||
           (d.deviceName && d.deviceName.toLowerCase().includes(search)) ||
-          (d.location && d.location.toLowerCase().includes(search));
+          (d.location && d.location.toLowerCase().includes(search)) ||
+          (d.notes && d.notes.toLowerCase().includes(search));
 
         // Category filter
         let matchCat = true;
@@ -1710,9 +1969,15 @@
 
         // Status filter
         let matchSt = true;
-        const isBad = String(d.status || '').toLowerCase().includes('xử lý') || String(d.status || '').toLowerCase().includes('hỏng');
-        if (stFilter === 'GOOD') matchSt = !isBad;
-        else if (stFilter === 'WARN') matchSt = isBad;
+        if (stFilter === 'GOOD') {
+          matchSt = d._computedStatus === 'GOOD';
+        } else if (stFilter === 'WARN') {
+          matchSt = d._computedStatus === 'WARN';
+        } else if (stFilter === 'EXPIRING') {
+          matchSt = d._expiryStatus === 'expired' || d._expiryStatus === 'expiring';
+        } else if (stFilter === 'UNCHECKED') {
+          matchSt = d._computedStatus === 'UNCHECKED';
+        }
 
         return matchSearch && matchCat && matchSt;
       });
@@ -1720,29 +1985,47 @@
       document.getElementById('deviceTableCountLabel').innerText = `Hiển thị ${filtered.length} / ${masterData.length} thiết bị`;
 
       if (filtered.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="8" class="text-center py-6 text-slate-400">Không tìm thấy thiết bị phù hợp với điều kiện lọc.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="8" class="text-center py-8 text-slate-400 font-medium">Không tìm thấy thiết bị nào phù hợp với bộ lọc hiện tại.</td></tr>`;
         return;
       }
 
       filtered.forEach(d => {
-        const isBad = String(d.status || '').toLowerCase().includes('xử lý') || String(d.status || '').toLowerCase().includes('hỏng');
         const tr = document.createElement('tr');
         tr.className = 'hover:bg-slate-50 transition border-b border-slate-100';
 
+        // Expiry Badge formatting
+        let expiryHtml = `<span class="text-slate-400">-</span>`;
+        if (d._expiryStatus === 'expired') {
+          expiryHtml = `<span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-red-100 text-red-700 border border-red-200">🔴 Quá hạn ${Math.abs(d._expiryDiffDays)} ngày</span>`;
+        } else if (d._expiryStatus === 'expiring') {
+          expiryHtml = `<span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-200">🟡 Sắp hết (${d._expiryDiffDays} ngày)</span>`;
+        } else if (d.inspectionExpiry && d.inspectionExpiry !== '-') {
+          expiryHtml = `<span class="text-slate-600 font-medium">${d.inspectionExpiry}</span>`;
+        }
+
+        // Status Badge formatting
+        const isBad = d._computedStatus === 'WARN';
+        const isUnchecked = d._computedStatus === 'UNCHECKED';
+        let statusBadgeHtml = '';
+
+        if (isBad) {
+          statusBadgeHtml = `<span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-red-100 text-red-700 border border-red-200">${d._latestCheckText || '⚠️ CẦN XỬ LÝ'}</span>`;
+        } else if (isUnchecked) {
+          statusBadgeHtml = `<span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-600 border border-slate-200">${d._latestCheckText || '⚪ Chưa kiểm tra'}</span>`;
+        } else {
+          statusBadgeHtml = `<span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">${d._latestCheckText || '✅ Đạt tiêu chuẩn'}</span>`;
+        }
+
         tr.innerHTML = `
-          <td class="px-3 py-2.5 font-bold text-slate-900">${d.deviceId}</td>
-          <td class="px-3 py-2.5 text-slate-700">${d.deviceName || ''}</td>
+          <td class="px-3 py-2.5 font-black text-slate-900">${d.deviceId}</td>
+          <td class="px-3 py-2.5 text-slate-700 font-medium">${d.deviceName || ''}</td>
           <td class="px-3 py-2.5">
             <span class="px-2 py-0.5 rounded bg-slate-100 text-slate-700 font-semibold text-[10px]">${CATEGORY_MAP[d.category]?.short || d.category}</span>
           </td>
           <td class="px-3 py-2.5 text-slate-600">${d.location || ''}</td>
           <td class="px-3 py-2.5 font-mono text-[11px]">${d.standardWeight && d.standardWeight !== '-' ? d.standardWeight + ' kg' : '-'}</td>
-          <td class="px-3 py-2.5 text-[11px]">${d.inspectionExpiry || '-'}</td>
-          <td class="px-3 py-2.5">
-            <span class="px-2 py-0.5 rounded-full text-[10px] font-bold ${isBad ? 'bg-red-100 text-red-700 border border-red-200' : 'bg-emerald-100 text-emerald-800 border border-emerald-200'}">
-              ${isBad ? '⚠️ CẦN XỬ LÝ' : '✅ Bình thường'}
-            </span>
-          </td>
+          <td class="px-3 py-2.5 text-[11px]">${expiryHtml}</td>
+          <td class="px-3 py-2.5">${statusBadgeHtml}</td>
           <td class="px-3 py-2.5 text-right">
             <button onclick="inspectSpecificDevice('${d.deviceId}')" class="px-2.5 py-1 bg-pccc-600 hover:bg-pccc-700 text-white rounded-lg text-[11px] font-bold transition shadow-sm">
               Kiểm Tra
@@ -1773,6 +2056,21 @@
       document.getElementById('cfgMasterCount').innerText = `${items.length} thiết bị`;
     }
 
+    async function refreshAllData() {
+      const icon = document.getElementById('btnRefreshIcon');
+      if (icon) icon.classList.add('animate-spin');
+      showToast('Đang làm mới toàn bộ dữ liệu từ Google Sheets...', 'info');
+
+      await fetchMasterData(true);
+      await fetchRecentLogs(true);
+
+      refreshDashboardData();
+      filterReportLogs();
+
+      if (icon) icon.classList.remove('animate-spin');
+      showToast('Đã đồng bộ dữ liệu thực tế mới nhất từ Google Sheets! ✅', 'success');
+    }
+
     async function fetchMasterData(silent = false) {
       const apiUrl = localStorage.getItem(STORAGE_KEYS.API_URL);
       if (!apiUrl) {
@@ -1801,19 +2099,28 @@
       const apiUrl = localStorage.getItem(STORAGE_KEYS.API_URL);
       if (!apiUrl) return;
 
-      if (!silent) showToast('Đang tải lịch sử kiểm tra...', 'info');
+      if (!silent) showToast('Đang tải lịch sử kiểm tra thực tế...', 'info');
 
       try {
-        const res = await fetch(`${apiUrl}?action=getAllLogs&limit=200`);
-        const json = await res.json();
+        // Use getRecentLogs with limit 300 (compatible with both previous and new Code.gs versions)
+        let res = await fetch(`${apiUrl}?action=getRecentLogs&limit=300`);
+        let json = await res.json();
+
+        if (json.status !== 'success') {
+          // Fallback to getAllLogs if deployed with newest version
+          res = await fetch(`${apiUrl}?action=getAllLogs&limit=300`);
+          json = await res.json();
+        }
+
         if (json.status === 'success' && Array.isArray(json.data)) {
           inspectionLogs = json.data;
           localStorage.setItem(STORAGE_KEYS.CACHED_LOGS, JSON.stringify(inspectionLogs));
+          refreshDashboardData();
           filterReportLogs();
-          if (!silent) showToast(`Đã tải ${inspectionLogs.length} lượt kiểm tra gần nhất.`, 'success');
+          if (!silent) showToast(`Đã tải ${inspectionLogs.length} lượt kiểm tra thực tế!`, 'success');
         }
       } catch (e) {
-        if (!silent) showToast('Không thể tải lịch sử kiểm tra từ Google Sheets.', 'warning');
+        if (!silent) showToast('Không thể tải lịch sử kiểm tra từ Google Sheets: ' + e.message, 'warning');
       }
     }
 
@@ -1825,7 +2132,34 @@
       const catFilter = document.getElementById('reportCatFilter').value;
       const resFilter = document.getElementById('reportResultFilter').value;
 
-      let filtered = inspectionLogs.filter(log => {
+      loadOfflineQueue();
+      const combinedLogs = [];
+
+      // 1. Add pending offline items at the top
+      if (Array.isArray(offlineQueue)) {
+        offlineQueue.forEach(item => {
+          if (item && item.data) {
+            combinedLogs.push({
+              timestamp: item.queuedAt ? new Date(item.queuedAt).toLocaleString('vi-VN') : 'Vừa xong',
+              inspector: item.data.inspector || 'Kỹ Sư An Toàn',
+              deviceId: item.data.deviceId || '',
+              category: item.category || '',
+              location: item.data.location || '',
+              result: item.data.finalResult || 'ĐẠT',
+              recommendation: item.data.recommendation || '',
+              photoUrl: item.data.photoBase64 || '',
+              isPendingOffline: true
+            });
+          }
+        });
+      }
+
+      // 2. Add synced server logs
+      if (Array.isArray(inspectionLogs)) {
+        inspectionLogs.forEach(l => combinedLogs.push(l));
+      }
+
+      let filtered = combinedLogs.filter(log => {
         const matchSearch = !search ||
           (log.deviceId && log.deviceId.toLowerCase().includes(search)) ||
           (log.location && log.location.toLowerCase().includes(search)) ||
@@ -1870,11 +2204,23 @@
       filtered.forEach(log => {
         const isPass = String(log.result || '').includes('ĐẠT') || String(log.result || '').includes('Đat');
         const tr = document.createElement('tr');
-        tr.className = 'hover:bg-slate-50 transition border-b border-slate-100';
+        tr.className = `hover:bg-slate-50 transition border-b border-slate-100 ${log.isPendingOffline ? 'bg-amber-50/40' : ''}`;
 
         const photoHtml = log.photoUrl && log.photoUrl.length > 5 
           ? `<button onclick="openPhotoModal('${log.photoUrl}', '${log.deviceId}')" class="px-2 py-1 bg-slate-100 hover:bg-slate-200 text-pccc-700 font-bold rounded text-[10px] border border-slate-200">Xem ảnh</button>`
           : `<span class="text-slate-300">-</span>`;
+
+        let resultBadge = '';
+        if (log.isPendingOffline) {
+          resultBadge = `<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-900 border border-amber-300 inline-flex items-center gap-1">
+            <span class="w-1.5 h-1.5 rounded-full bg-amber-500 animate-ping"></span>
+            ${log.result || 'ĐẠT'} (Chờ đồng bộ)
+          </span>`;
+        } else {
+          resultBadge = `<span class="px-2 py-0.5 rounded text-[10px] font-bold ${isPass ? 'bg-emerald-100 text-emerald-800' : 'bg-red-100 text-red-800'}">
+            ${log.result || 'ĐẠT'}
+          </span>`;
+        }
 
         tr.innerHTML = `
           <td class="px-3 py-2 text-[11px] font-mono text-slate-500 whitespace-nowrap">${log.timestamp || ''}</td>
@@ -1882,11 +2228,7 @@
           <td class="px-3 py-2 font-bold text-slate-900">${log.deviceId || ''}</td>
           <td class="px-3 py-2"><span class="px-1.5 py-0.2 rounded bg-slate-100 text-slate-700 text-[10px] font-semibold">${log.category || ''}</span></td>
           <td class="px-3 py-2 text-slate-600">${log.location || ''}</td>
-          <td class="px-3 py-2">
-            <span class="px-2 py-0.5 rounded text-[10px] font-bold ${isPass ? 'bg-emerald-100 text-emerald-800' : 'bg-red-100 text-red-800'}">
-              ${log.result || 'ĐẠT'}
-            </span>
-          </td>
+          <td class="px-3 py-2">${resultBadge}</td>
           <td class="px-3 py-2 text-slate-600 max-w-xs truncate">${log.recommendation || '-'}</td>
           <td class="px-3 py-2 text-center no-print">${photoHtml}</td>
         `;
@@ -2395,6 +2737,22 @@
           // Update local status in master data table
           updateLocalMasterData(payload.data.deviceId, result.finalResult || payload.data.finalResult);
 
+          // Immediately prepend to local inspection logs for real-time reactivity
+          const newLog = {
+            timestamp: new Date().toLocaleString('vi-VN'),
+            inspector: payload.data.inspector || 'Kỹ Sư An Toàn',
+            deviceId: payload.data.deviceId,
+            category: payload.category,
+            location: payload.data.location || '',
+            result: result.finalResult || payload.data.finalResult || 'ĐẠT',
+            recommendation: payload.data.recommendation || '',
+            photoUrl: result.photoUrl || payload.data.photoBase64 || ''
+          };
+          inspectionLogs.unshift(newLog);
+          localStorage.setItem(STORAGE_KEYS.CACHED_LOGS, JSON.stringify(inspectionLogs));
+          refreshDashboardData();
+          filterReportLogs();
+
           resetFormAfterSubmit();
           fetchRecentLogs(true);
         } else {
@@ -2447,6 +2805,8 @@
       offlineQueue.push(payload);
       localStorage.setItem(STORAGE_KEYS.OFFLINE_QUEUE, JSON.stringify(offlineQueue));
       updateOfflineBadges();
+      refreshDashboardData();
+      filterReportLogs();
       showToast(`Đã lưu tạm (${payload.data.deviceId}). Sẽ tự đồng bộ khi có mạng.`, 'info');
     }
 
