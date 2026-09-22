@@ -305,14 +305,14 @@
         <span>Báo Cáo & Xuất Dữ Liệu</span>
       </button>
 
-      <button onclick="navigateView('qr_print')" id="navLink_qr_print"
-        class="nav-btn w-full flex items-center space-x-3 px-3.5 py-2.5 rounded-xl font-bold text-xs transition text-slate-400 hover:bg-slate-800 hover:text-white">
+      <button onclick="navigateView('qr_print')" id="navLink_qr_print" style="display: none;"
+        class="nav-btn hidden w-full flex items-center space-x-3 px-3.5 py-2.5 rounded-xl font-bold text-xs transition text-slate-400 hover:bg-slate-800 hover:text-white">
         <i data-lucide="printer" class="w-4 h-4"></i>
         <span>In Tem QR Hàng Loạt</span>
       </button>
 
-      <button onclick="navigateView('settings')" id="navLink_settings"
-        class="nav-btn w-full flex items-center space-x-3 px-3.5 py-2.5 rounded-xl font-bold text-xs transition text-slate-400 hover:bg-slate-800 hover:text-white">
+      <button onclick="navigateView('settings')" id="navLink_settings" style="display: none;"
+        class="nav-btn hidden w-full flex items-center space-x-3 px-3.5 py-2.5 rounded-xl font-bold text-xs transition text-slate-400 hover:bg-slate-800 hover:text-white">
         <i data-lucide="settings" class="w-4 h-4"></i>
         <span>Cấu Hình Hệ Thống</span>
       </button>
@@ -373,8 +373,8 @@
       </button>
 
       <!-- Settings Icon -->
-      <button onclick="navigateView('settings')" title="Cài đặt hệ thống"
-        class="w-7 h-7 rounded-lg bg-white/10 hover:bg-white/20 active:scale-95 flex items-center justify-center transition">
+      <button onclick="navigateView('settings')" id="mobileTopSettingsBtn" title="Cài đặt hệ thống" style="display: none;"
+        class="hidden w-7 h-7 rounded-lg bg-white/10 hover:bg-white/20 active:scale-95 flex items-center justify-center transition">
         <i data-lucide="settings" class="w-3.5 h-3.5 text-white"></i>
       </button>
 
@@ -670,8 +670,8 @@
 
         <div class="flex items-center justify-between text-xs text-slate-500 pt-1">
           <span id="deviceTableCountLabel">Hiển thị 0 thiết bị</span>
-          <button onclick="navigateView('qr_print')"
-            class="text-pccc-700 hover:underline font-bold flex items-center gap-1">
+          <button onclick="navigateView('qr_print')" id="dashboardQrPrintBtn" style="display: none;"
+            class="hidden text-pccc-700 hover:underline font-bold flex items-center gap-1">
             <i data-lucide="printer" class="w-3.5 h-3.5"></i>
             <span>In mã QR danh sách này</span>
           </button>
@@ -1724,8 +1724,8 @@
       </button>
 
       <!-- Bulk QR Print -->
-      <button onclick="navigateView('qr_print')" id="mNav_qr_print"
-        class="mobile-nav-btn flex flex-col items-center text-slate-400 font-semibold text-[10px] space-y-0.5">
+      <button onclick="navigateView('qr_print')" id="mNav_qr_print" style="display: none;"
+        class="mobile-nav-btn hidden flex flex-col items-center text-slate-400 font-semibold text-[10px] space-y-0.5">
         <i data-lucide="printer" class="w-5 h-5"></i>
         <span>In Tem</span>
       </button>
@@ -1992,9 +1992,35 @@
       lucide.createIcons();
     }
 
+    function updateAdminMenuVisibility(isMasterAdmin) {
+      const adminElements = [
+        document.getElementById('navLink_qr_print'),
+        document.getElementById('navLink_settings'),
+        document.getElementById('mNav_qr_print'),
+        document.getElementById('mobileTopSettingsBtn'),
+        document.getElementById('dashboardQrPrintBtn')
+      ];
+
+      adminElements.forEach(el => {
+        if (el) {
+          if (isMasterAdmin) {
+            el.classList.remove('hidden');
+            el.style.setProperty('display', '', 'important');
+          } else {
+            el.classList.add('hidden');
+            el.style.setProperty('display', 'none', 'important');
+          }
+        }
+      });
+    }
+
     function handleLogout() {
       if (confirm('Bạn có chắc chắn muốn đăng xuất khỏi hệ thống?')) {
         currentUser = null;
+        updateAdminMenuVisibility(false);
+        if (currentView === 'qr_print' || currentView === 'settings') {
+          currentView = 'dashboard';
+        }
         localStorage.removeItem(STORAGE_KEYS.AUTH_USER);
         localStorage.removeItem(STORAGE_KEYS.REMEMBER_LOGIN);
         sessionStorage.removeItem(STORAGE_KEYS.AUTH_USER);
@@ -2050,6 +2076,7 @@
         }
       } else {
         currentUser = null;
+        updateAdminMenuVisibility(false);
         if (loginScreen) {
           loginScreen.classList.remove('hidden', 'opacity-0', 'pointer-events-none');
           const savedId = localStorage.getItem(STORAGE_KEYS.SAVED_EMP_ID) || '';
@@ -2064,7 +2091,14 @@
       const displayName = user.name || 'Kỹ Sư An Toàn';
       const displayCode = user.employeeId || '--';
       const displayRole = user.role || 'Nhân Viên Kiểm Định';
-      const isAdmin = user.employeeId === '2265' || !!user.isAdmin;
+      const isMasterAdmin = String(user.employeeId || '').trim() === '2265';
+
+      // Restrict QR Print and Settings menus exclusively to MSNV 2265
+      updateAdminMenuVisibility(isMasterAdmin);
+
+      if (!isMasterAdmin && (currentView === 'qr_print' || currentView === 'settings')) {
+        navigateView('dashboard');
+      }
 
       // Sidebar & Mobile Headers
       const sbName = document.getElementById('sidebarInspectorName');
@@ -2084,8 +2118,8 @@
       if (stCode) stCode.innerText = displayCode;
       if (stRole) stRole.innerText = displayRole;
       if (stBadge) {
-        stBadge.innerText = isAdmin ? 'Admin' : 'Nhân Viên';
-        stBadge.className = isAdmin
+        stBadge.innerText = isMasterAdmin ? 'Admin' : 'Nhân Viên';
+        stBadge.className = isMasterAdmin
           ? 'text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-900 border border-amber-300'
           : 'text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-100 text-blue-900 border border-blue-200';
       }
@@ -2347,6 +2381,13 @@
      * VIEW NAVIGATION (Dashboard / Inspect / Reports / QR Print / Settings)
      */
     function navigateView(viewId) {
+      // Permission check: Only Admin (MSNV 2265) can access qr_print and settings
+      const isMasterAdmin = currentUser && String(currentUser.employeeId || '').trim() === '2265';
+      if ((viewId === 'qr_print' || viewId === 'settings') && !isMasterAdmin) {
+        showToast('Chỉ Quản trị viên (MSNV 2265) mới có quyền truy cập mục này!', 'warning');
+        return;
+      }
+
       currentView = viewId;
 
       // Hide all views
@@ -2371,6 +2412,9 @@
       if (activeMobileNav) {
         activeMobileNav.className = 'mobile-nav-btn flex flex-col items-center text-pccc-600 font-bold text-[10px] space-y-0.5';
       }
+
+      // Enforce admin menu visibility on every tab switch
+      updateAdminMenuVisibility(isMasterAdmin);
 
       // View-specific initialization
       if (viewId === 'dashboard') {
@@ -4003,8 +4047,12 @@
 
       const apiUrl = localStorage.getItem(STORAGE_KEYS.API_URL);
       if (!apiUrl) {
-        showToast('Vui lòng nhập Google Apps Script URL trước!', 'warning');
-        navigateView('settings');
+        if (currentUser && String(currentUser.employeeId || '').trim() === '2265') {
+          showToast('Vui lòng cấu hình URL Google Apps Script trong Cài đặt!', 'warning');
+          navigateView('settings');
+        } else {
+          showToast('Vui lòng liên hệ Quản trị viên (2265) để cấu hình kết nối máy chủ!', 'warning');
+        }
         return;
       }
 
