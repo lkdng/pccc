@@ -2129,6 +2129,8 @@
       // View-specific initialization
       if (viewId === 'dashboard') {
         refreshDashboardData();
+      } else if (viewId === 'inspect') {
+        filterDeviceInputByCategory(currentCategory);
       } else if (viewId === 'reports') {
         filterReportLogs();
       } else if (viewId === 'qr_print') {
@@ -2220,11 +2222,21 @@
 
     function loadCachedData() {
       const rawMaster = localStorage.getItem(STORAGE_KEYS.MASTER_DATA);
-      masterData = rawMaster ? JSON.parse(rawMaster) : SAMPLE_MASTER_DATA;
+      try {
+        const parsed = rawMaster ? JSON.parse(rawMaster) : null;
+        masterData = (Array.isArray(parsed) && parsed.length > 0) ? parsed : [...SAMPLE_MASTER_DATA];
+      } catch (e) {
+        masterData = [...SAMPLE_MASTER_DATA];
+      }
       populateMasterDatalist(masterData);
 
       const rawLogs = localStorage.getItem(STORAGE_KEYS.CACHED_LOGS);
-      inspectionLogs = rawLogs ? JSON.parse(rawLogs) : [];
+      try {
+        const parsedLogs = rawLogs ? JSON.parse(rawLogs) : [];
+        inspectionLogs = Array.isArray(parsedLogs) ? parsedLogs : [];
+      } catch (e) {
+        inspectionLogs = [];
+      }
     }
 
     function initDateDefaults() {
@@ -2340,14 +2352,7 @@
 
       masterData.forEach(d => {
         // 1. Count category
-        let catKey = d.category || 'Binh_Bot';
-        if (catKey.includes('Bot')) catKey = 'Binh_Bot';
-        else if (catKey.includes('CO2')) catKey = 'Binh_CO2';
-        else if (catKey.includes('Chuong') || catKey.includes('Bao')) catKey = 'Chuong_BaoChay';
-        else if (catKey.includes('Vach')) catKey = 'Tu_Vach_Tuong';
-        else if (catKey.includes('Bom')) catKey = 'Tram_Bom';
-        else if (catKey.includes('Trung_Tam')) catKey = 'Tu_Trung_Tam_PCCC';
-
+        const catKey = getDeviceCategoryKey(d) || 'Binh_Bot';
         if (catCounts[catKey] !== undefined) catCounts[catKey]++;
 
         // 2. Real-time Status Evaluation
@@ -2555,7 +2560,7 @@
         // Category filter
         let matchCat = true;
         if (catFilter !== 'ALL') {
-          matchCat = String(d.category || '').toLowerCase().includes(catFilter.toLowerCase());
+          matchCat = getDeviceCategoryKey(d) === catFilter;
         }
 
         // Status filter
@@ -2635,27 +2640,160 @@
     /**
      * MASTER DATA API & RECENT LOGS API
      */
+    function removeVietnameseTones(str) {
+      if (!str) return '';
+      return String(str).trim().toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/[đĐ]/g, 'd')
+        .replace(/[^a-z0-9]/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+    }
+
+    function getDeviceCategoryKey(device) {
+      if (!device) return '';
+
+      // Direct exact match if category already matches one of the canonical keys
+      const rawCategoryDirect = String(device.category || '').trim();
+      if (['Binh_Bot', 'Binh_CO2', 'Chuong_BaoChay', 'Tu_Vach_Tuong', 'Tram_Bom', 'Tu_Trung_Tam_PCCC'].includes(rawCategoryDirect)) {
+        return rawCategoryDirect;
+      }
+
+      const rawCat = removeVietnameseTones(device.category);
+      const rawName = removeVietnameseTones(device.deviceName);
+      const rawId = removeVietnameseTones(device.deviceId);
+      const combined = (rawCat + ' ' + rawName + ' ' + rawId).trim();
+      const idUpper = String(device.deviceId || '').toUpperCase().trim();
+
+      // 1. Trạm Bơm (Check pump before trung tâm to prevent 'trạm bơm trung tâm' false positive)
+      if (
+        combined.includes('tram bom') || 
+        combined.includes('may bom') || 
+        combined.includes('bom pccc') || 
+        combined.includes('bom chua chay') || 
+        combined.includes('bom bu') || 
+        combined.includes('bom diesel') || 
+        combined.includes('bom dien') || 
+        combined.includes('nha bom') || 
+        combined.includes('pump') ||
+        combined.includes('bom') ||
+        idUpper.startsWith('TB') || 
+        idUpper.startsWith('BOM') || 
+        idUpper.startsWith('PUMP') || 
+        idUpper.startsWith('MB')
+      ) {
+        return 'Tram_Bom';
+      }
+
+      // 2. Tủ Trung Tâm PCCC (Fire Alarm Control Panel)
+      if (
+        combined.includes('tu trung tam') ||
+        combined.includes('trung tam bao chay') ||
+        combined.includes('dieu khien trung tam') ||
+        combined.includes('facp') || 
+        combined.includes('panel') || 
+        idUpper.startsWith('TTC') || 
+        idUpper.startsWith('FACP') ||
+        idUpper.startsWith('PANEL') ||
+        (combined.includes('trung tam') && !combined.includes('bom'))
+      ) {
+        return 'Tu_Trung_Tam_PCCC';
+      }
+
+      // 3. Tủ Vòi Vách Tường (Fire Hose Cabinet / Hydrant)
+      if (
+        combined.includes('vach tuong') || 
+        combined.includes('tu vach') || 
+        combined.includes('cuon voi') || 
+        combined.includes('hong nuoc') || 
+        combined.includes('lang phun') || 
+        combined.includes('tu voi') || 
+        combined.includes('tu chua chay') || 
+        combined.includes('hop chua chay') || 
+        combined.includes('hose') || 
+        combined.includes('hydrant') ||
+        idUpper.startsWith('TU') || 
+        idUpper.startsWith('TV') || 
+        idUpper.startsWith('VV') || 
+        idUpper.startsWith('HOSE')
+      ) {
+        return 'Tu_Vach_Tuong';
+      }
+
+      // 4. Chuông & Nút Báo Cháy
+      if (
+        combined.includes('chuong') || 
+        combined.includes('nut an') || 
+        combined.includes('nut khan') || 
+        combined.includes('coi bao') || 
+        combined.includes('den chop') || 
+        combined.includes('den chi thi') || 
+        combined.includes('to hop') || 
+        combined.includes('bao khoi') || 
+        combined.includes('bao nhiet') || 
+        combined.includes('alarm') || 
+        combined.includes('detector') || 
+        combined.includes('siren') || 
+        combined.includes('strobe') || 
+        combined.includes('bao chay') ||
+        idUpper.startsWith('NA') || 
+        idUpper.startsWith('BC') || 
+        idUpper.startsWith('ALARM') || 
+        idUpper.startsWith('BELL') || 
+        idUpper.startsWith('NUT') || 
+        idUpper.startsWith('COI')
+      ) {
+        return 'Chuong_BaoChay';
+      }
+
+      // 5. Bình CO2
+      if (
+        combined.includes('co2') || 
+        combined.includes('mt3') || 
+        combined.includes('mt5') || 
+        combined.includes('mt24') || 
+        combined.includes('binh khi') || 
+        combined.includes('khi co2') || 
+        combined.includes('carbon') ||
+        idUpper.startsWith('CO2') || 
+        idUpper.startsWith('MT') || 
+        idUpper.startsWith('BINHCO2') || 
+        idUpper.startsWith('CO-')
+      ) {
+        return 'Binh_CO2';
+      }
+
+      // 6. Bình Bột
+      if (
+        combined.includes('binh bot') || 
+        combined.includes('bot mfz') || 
+        combined.includes('bot abc') || 
+        combined.includes('bot bc') || 
+        combined.includes('bot kho') || 
+        combined.includes('mfz') || 
+        combined.includes('mfzl') || 
+        combined.includes('mftz') || 
+        combined.includes('powder') || 
+        combined.includes('bot') ||
+        idUpper.startsWith('BOT') || 
+        idUpper.startsWith('MFZ') || 
+        idUpper.startsWith('MFZL') || 
+        idUpper.startsWith('MFTZ') || 
+        idUpper.startsWith('BB') || 
+        idUpper.startsWith('BP') || 
+        idUpper.startsWith('BINHBOT') || 
+        idUpper.startsWith('B-')
+      ) {
+        return 'Binh_Bot';
+      }
+
+      return '';
+    }
+
     function isDeviceInCategory(device, catKey) {
       if (!device) return false;
-      const cat = String(device.category || '').toLowerCase();
-      const id = String(device.deviceId || '').toUpperCase();
-
-      switch (catKey) {
-        case 'Binh_Bot':
-          return cat.includes('bot') || id.startsWith('BOT') || id.startsWith('MFZ');
-        case 'Binh_CO2':
-          return cat.includes('co2') || id.startsWith('CO2') || id.startsWith('MT');
-        case 'Chuong_BaoChay':
-          return cat.includes('chuong') || cat.includes('bao') || cat.includes('nut') || id.startsWith('NA') || id.startsWith('BC') || id.startsWith('ALARM');
-        case 'Tu_Vach_Tuong':
-          return cat.includes('vach') || cat.includes('tu_vach') || cat.includes('voi') || id.startsWith('TU') || id.startsWith('TV');
-        case 'Tram_Bom':
-          return cat.includes('bom') || id.startsWith('TB') || id.startsWith('BOM') || id.startsWith('PUMP');
-        case 'Tu_Trung_Tam_PCCC':
-          return cat.includes('trung_tam') || id.startsWith('TTC') || id.startsWith('TT') || id.startsWith('PANEL');
-        default:
-          return true;
-      }
+      return getDeviceCategoryKey(device) === catKey;
     }
 
     const CATEGORY_PLACEHOLDERS = {
@@ -2668,9 +2806,20 @@
     };
 
     function filterDeviceInputByCategory(catKey) {
-      const categoryDevices = masterData.filter(d => isDeviceInCategory(d, catKey));
+      if (!masterData || masterData.length === 0) {
+        const rawMaster = localStorage.getItem(STORAGE_KEYS.MASTER_DATA);
+        try {
+          const parsed = rawMaster ? JSON.parse(rawMaster) : null;
+          masterData = (Array.isArray(parsed) && parsed.length > 0) ? parsed : [...SAMPLE_MASTER_DATA];
+        } catch (e) {
+          masterData = [...SAMPLE_MASTER_DATA];
+        }
+      }
 
-      // 1. Update Datalist with only devices of this category
+      const categoryDevices = masterData.filter(d => isDeviceInCategory(d, catKey));
+      const otherDevices = masterData.filter(d => !isDeviceInCategory(d, catKey));
+
+      // 1. Update Datalist with devices
       const datalist = document.getElementById('masterDeviceList');
       if (datalist) {
         datalist.innerHTML = '';
@@ -2680,24 +2829,72 @@
           opt.innerText = `${d.deviceName || ''} (${d.location || ''})`;
           datalist.appendChild(opt);
         });
-      }
-
-      // 2. Update Select Dropdown with only devices of this category
-      const selectEl = document.getElementById('selectDeviceByCategory');
-      if (selectEl) {
-        selectEl.innerHTML = `<option value="">-- Chọn mã thiết bị (${categoryDevices.length} thiết bị) --</option>`;
-        categoryDevices.forEach(d => {
+        // Also include other devices so manual typing / scanning always recognizes any device in factory
+        otherDevices.forEach(d => {
           const opt = document.createElement('option');
           opt.value = d.deviceId;
-          opt.innerText = `${d.deviceId} - ${d.deviceName || ''} (${d.location || ''})`;
-          selectEl.appendChild(opt);
+          opt.innerText = `[${CATEGORY_MAP[getDeviceCategoryKey(d)]?.short || 'Khác'}] ${d.deviceName || ''} (${d.location || ''})`;
+          datalist.appendChild(opt);
         });
+      }
+
+      // 2. Update Select Dropdown
+      const selectEl = document.getElementById('selectDeviceByCategory');
+      if (selectEl) {
+        selectEl.innerHTML = '';
+
+        if (categoryDevices.length > 0) {
+          const defaultOpt = document.createElement('option');
+          defaultOpt.value = '';
+          defaultOpt.innerText = `-- Chọn mã thiết bị (${categoryDevices.length} thiết bị trong nhóm) --`;
+          selectEl.appendChild(defaultOpt);
+
+          categoryDevices.forEach(d => {
+            const opt = document.createElement('option');
+            opt.value = d.deviceId;
+            opt.innerText = `${d.deviceId} - ${d.deviceName || ''} (${d.location || ''})`;
+            selectEl.appendChild(opt);
+          });
+
+          if (otherDevices.length > 0) {
+            const optGroup = document.createElement('optgroup');
+            optGroup.label = `── Thiết bị thuộc nhóm khác (${otherDevices.length}) ──`;
+            otherDevices.forEach(d => {
+              const opt = document.createElement('option');
+              opt.value = d.deviceId;
+              opt.innerText = `${d.deviceId} - ${d.deviceName || ''} (${d.location || ''})`;
+              optGroup.appendChild(opt);
+            });
+            selectEl.appendChild(optGroup);
+          }
+        } else {
+          // If no devices strictly matched this category, show all available devices with clear notice
+          const defaultOpt = document.createElement('option');
+          defaultOpt.value = '';
+          defaultOpt.innerText = masterData.length > 0
+            ? `-- Chưa có thiết bị nhóm này (Chọn từ ${masterData.length} thiết bị có sẵn) --`
+            : `-- Chưa có dữ liệu thiết bị --`;
+          selectEl.appendChild(defaultOpt);
+
+          masterData.forEach(d => {
+            const opt = document.createElement('option');
+            opt.value = d.deviceId;
+            opt.innerText = `${d.deviceId} - ${d.deviceName || ''} (${d.location || ''})`;
+            selectEl.appendChild(opt);
+          });
+        }
       }
 
       // 3. Update count badge in device info card
       const countBadge = document.getElementById('deviceCountInCategory');
       if (countBadge) {
-        countBadge.innerText = `${categoryDevices.length} thiết bị`;
+        if (categoryDevices.length > 0) {
+          countBadge.innerText = `${categoryDevices.length} thiết bị`;
+          countBadge.className = 'text-[10px] font-bold text-pccc-700 bg-red-50 px-2 py-0.5 rounded border border-red-200';
+        } else {
+          countBadge.innerText = `0 trong nhóm (${masterData.length} tổng)`;
+          countBadge.className = 'text-[10px] font-semibold text-slate-500 bg-slate-100 px-2 py-0.5 rounded border border-slate-200';
+        }
       }
 
       // 4. Update Input Placeholder
@@ -2705,15 +2902,20 @@
       if (inputEl) {
         inputEl.placeholder = CATEGORY_PLACEHOLDERS[catKey] || 'Nhập mã thiết bị...';
         
-        // If current value in input does not belong to this category, clear it to avoid mismatch
+        // If current value in input does not belong to this category, check if it belongs to masterData
         const currentVal = inputEl.value.trim().toUpperCase();
         if (currentVal) {
           const belongs = categoryDevices.some(d => d.deviceId.toUpperCase() === currentVal);
           if (!belongs) {
-            inputEl.value = '';
-            document.getElementById('inputLocation').value = '';
-            document.getElementById('deviceMetaBar').classList.add('hidden');
-            if (selectEl) selectEl.value = '';
+            const existsInMaster = masterData.some(d => d.deviceId.toUpperCase() === currentVal);
+            if (!existsInMaster) {
+              inputEl.value = '';
+              document.getElementById('inputLocation').value = '';
+              document.getElementById('deviceMetaBar').classList.add('hidden');
+              if (selectEl) selectEl.value = '';
+            } else {
+              if (selectEl) selectEl.value = currentVal;
+            }
           } else {
             if (selectEl) selectEl.value = currentVal;
           }
@@ -2770,7 +2972,7 @@
       try {
         const res = await fetch(`${apiUrl}?action=getMasterData`);
         const json = await res.json();
-        if (json.status === 'success' && Array.isArray(json.data)) {
+        if (json.status === 'success' && Array.isArray(json.data) && json.data.length > 0) {
           masterData = json.data;
           localStorage.setItem(STORAGE_KEYS.MASTER_DATA, JSON.stringify(masterData));
           populateMasterDatalist(masterData);
@@ -2995,7 +3197,7 @@
 
       let listToRender = masterData.filter(d => {
         if (catFilter === 'ALL') return true;
-        return String(d.category || '').toLowerCase().includes(catFilter.toLowerCase());
+        return getDeviceCategoryKey(d) === catFilter;
       });
 
       // Initialize selected set if empty
@@ -3147,20 +3349,11 @@
       if (found) {
         if (found.location) document.getElementById('inputLocation').value = found.location;
 
-        if (found.category) {
-          let targetCategory = '';
-          if (found.category.toLowerCase().includes('bot') || cleanId.startsWith('BOT') || cleanId.startsWith('MFZ')) targetCategory = 'Binh_Bot';
-          else if (found.category.toLowerCase().includes('co2') || cleanId.startsWith('CO2') || cleanId.startsWith('MT')) targetCategory = 'Binh_CO2';
-          else if (found.category.toLowerCase().includes('chuong') || found.category.toLowerCase().includes('bao') || cleanId.startsWith('NA') || cleanId.startsWith('BC')) targetCategory = 'Chuong_BaoChay';
-          else if (found.category.toLowerCase().includes('vach') || found.category.toLowerCase().includes('tu_vach') || cleanId.startsWith('TU') || cleanId.startsWith('TV')) targetCategory = 'Tu_Vach_Tuong';
-          else if (found.category.toLowerCase().includes('bom') || cleanId.startsWith('TB') || cleanId.startsWith('BOM')) targetCategory = 'Tram_Bom';
-          else if (found.category.toLowerCase().includes('trung_tam') || cleanId.startsWith('TTC') || cleanId.startsWith('TT')) targetCategory = 'Tu_Trung_Tam_PCCC';
-
-          if (targetCategory && targetCategory !== currentCategory) {
-            switchCategory(targetCategory);
-            const sel = document.getElementById('selectDeviceByCategory');
-            if (sel) sel.value = cleanId;
-          }
+        const targetCategory = getDeviceCategoryKey(found);
+        if (targetCategory && targetCategory !== currentCategory) {
+          switchCategory(targetCategory);
+          const sel = document.getElementById('selectDeviceByCategory');
+          if (sel) sel.value = cleanId;
         }
 
         if (found.standardWeight && found.standardWeight !== '-') {
