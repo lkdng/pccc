@@ -293,12 +293,6 @@
         <span>Dashboard Tổng Quan</span>
       </button>
 
-      <button onclick="navigateView('inspect')" id="navLink_inspect"
-        class="nav-btn w-full flex items-center space-x-3 px-3.5 py-2.5 rounded-xl font-bold text-xs transition text-slate-400 hover:bg-slate-800 hover:text-white">
-        <i data-lucide="clipboard-check" class="w-4 h-4"></i>
-        <span>Kiểm Tra Định Kỳ</span>
-      </button>
-
       <button onclick="navigateView('reports')" id="navLink_reports"
         class="nav-btn w-full flex items-center space-x-3 px-3.5 py-2.5 rounded-xl font-bold text-xs transition text-slate-400 hover:bg-slate-800 hover:text-white">
         <i data-lucide="file-spreadsheet" class="w-4 h-4"></i>
@@ -447,15 +441,7 @@
             <span id="kpiTotalDevices" class="text-2xl lg:text-3xl font-black text-slate-800">--</span>
             <span class="text-xs font-semibold text-slate-400">thiết bị</span>
           </div>
-          <div class="mt-2 text-[11px] text-slate-500 flex items-center justify-between">
-            <div class="flex items-center gap-1">
-              <span class="w-2 h-2 rounded-full bg-slate-400"></span>
-              <span>Đã số hóa</span>
-            </div>
-            <span class="text-[10px] font-bold text-pccc-700 group-hover:underline flex items-center gap-0.5">
-              Xem tất cả &darr;
-            </span>
-          </div>
+         
         </div>
 
         <!-- Card 2: Good / Ready Status -->
@@ -473,15 +459,7 @@
             <span id="kpiGoodPercent"
               class="text-xs font-bold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded">--%</span>
           </div>
-          <div class="mt-2 text-[11px] text-slate-500 flex items-center justify-between">
-            <div class="flex items-center gap-1">
-              <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
-              <span>Sẵn sàng vận hành</span>
-            </div>
-            <span class="text-[10px] font-bold text-emerald-600 group-hover:underline flex items-center gap-0.5">
-              Lọc Đạt &darr;
-            </span>
-          </div>
+          
         </div>
 
         <!-- Card 3: Needs Maintenance / Broken -->
@@ -498,15 +476,7 @@
             <span id="kpiBrokenDevices" class="text-2xl lg:text-3xl font-black text-red-600">--</span>
             <span class="text-xs font-semibold text-slate-400">cần nạp/sửa</span>
           </div>
-          <div class="mt-2 text-[11px] text-slate-500 flex items-center justify-between">
-            <div class="flex items-center gap-1">
-              <span class="w-2 h-2 rounded-full bg-red-500"></span>
-              <span>Cảnh báo nạp/hỏng</span>
-            </div>
-            <span class="text-[10px] font-bold text-red-600 group-hover:underline flex items-center gap-0.5">
-              Lọc Hỏng &darr;
-            </span>
-          </div>
+          
         </div>
 
         <!-- Card 4: Inspection Expiring Soon -->
@@ -523,15 +493,7 @@
             <span id="kpiExpiringDevices" class="text-2xl lg:text-3xl font-black text-amber-600">--</span>
             <span class="text-xs font-semibold text-slate-400">trong 30 ngày</span>
           </div>
-          <div class="mt-2 text-[11px] text-slate-500 flex items-center justify-between">
-            <div class="flex items-center gap-1">
-              <span class="w-2 h-2 rounded-full bg-amber-500"></span>
-              <span>Hạn KĐ cần gia hạn</span>
-            </div>
-            <span class="text-[10px] font-bold text-amber-600 group-hover:underline flex items-center gap-0.5">
-              Lọc Hạn &darr;
-            </span>
-          </div>
+          
         </div>
       </div>
 
@@ -684,16 +646,24 @@
     <!-- ===================================================================== -->
     <section id="view_inspect" class="app-view hidden p-3 lg:p-6 space-y-4 max-w-3xl w-full mx-auto">
       <!-- Header bar of Inspect Form -->
-      <div class="flex items-center justify-between">
-        <div>
-          <h2 class="text-lg font-black text-slate-800 flex items-center gap-2">
-            <i data-lucide="clipboard-check" class="w-5 h-5 text-pccc-600"></i>
-            Kiểm Tra Thiết Bị Định Kỳ
-          </h2>
-          <p class="text-xs text-slate-500">Quét mã QR hoặc nhập mã thiết bị để thực hiện kiểm tra</p>
+      <div class="flex items-center justify-between gap-2">
+        <div class="flex items-center gap-3">
+          <button onclick="navigateView('dashboard')" title="Quay lại Dashboard"
+            class="px-3 py-2 rounded-xl bg-white border border-slate-300 hover:bg-slate-50 active:scale-95 text-slate-700 font-bold text-xs flex items-center gap-1.5 shadow-sm transition">
+            <i data-lucide="arrow-left" class="w-4 h-4 text-slate-600"></i>
+            <span class="hidden sm:inline">Quay Lại</span>
+            <span>Dashboard</span>
+          </button>
+          <div>
+            <h2 class="text-base sm:text-lg font-black text-slate-800 flex items-center gap-2">
+              <i data-lucide="clipboard-check" class="w-5 h-5 text-pccc-600"></i>
+              Kiểm Tra Thiết Bị
+            </h2>
+            <p class="text-xs text-slate-500">Quét mã QR hoặc chọn thiết bị để thực hiện kiểm tra</p>
+          </div>
         </div>
         <button onclick="openQrModal()"
-          class="flex items-center space-x-1.5 px-3 py-2 bg-pccc-600 hover:bg-pccc-700 active:scale-95 text-white rounded-xl shadow font-bold text-xs transition">
+          class="flex items-center space-x-1.5 px-3 py-2 bg-pccc-600 hover:bg-pccc-700 active:scale-95 text-white rounded-xl shadow font-bold text-xs transition whitespace-nowrap">
           <i data-lucide="qr-code" class="w-4 h-4"></i>
           <span>Quét QR Camera</span>
         </button>
@@ -1700,13 +1670,6 @@
         <span>Tổng Quan</span>
       </button>
 
-      <!-- Inspect Form -->
-      <button onclick="navigateView('inspect')" id="mNav_inspect"
-        class="mobile-nav-btn flex flex-col items-center text-slate-400 font-semibold text-[10px] space-y-0.5">
-        <i data-lucide="clipboard-check" class="w-5 h-5"></i>
-        <span>Kiểm Tra</span>
-      </button>
-
       <!-- Center Quick QR Scan -->
       <button onclick="openQrModal()" class="flex flex-col items-center text-slate-600 text-[10px] space-y-0.5">
         <div
@@ -1817,27 +1780,121 @@
     };
 
     /**
-     * PRE-CONFIGURED DEFAULT ACCOUNTS
+     * CRYPTOGRAPHIC HASH UTILITY (SHA-256 Synchronous)
+     * Securely hash passwords without requiring HTTPS SubtleCrypto or async complexity.
+     */
+    function sha256Sync(ascii) {
+      function rightRotate(value, amount) {
+        return (value >>> amount) | (value << (32 - amount));
+      }
+      var mathPow = Math.pow;
+      var maxWord = mathPow(2, 32);
+      var lengthProperty = 'length';
+      var i, j;
+      var result = '';
+      var words = [];
+      var hash = [];
+      var k = [];
+      var primeCounter = 0;
+
+      var isComposite = {};
+      for (var candidate = 2; primeCounter < 64; candidate++) {
+        if (!isComposite[candidate]) {
+          for (i = candidate * candidate; i < 312; i += candidate) {
+            isComposite[i] = true;
+          }
+          hash[primeCounter] = (mathPow(candidate, 0.5) * maxWord) | 0;
+          k[primeCounter++] = (mathPow(candidate, 1 / 3) * maxWord) | 0;
+        }
+      }
+
+      var utf8 = [];
+      for (i = 0; i < ascii[lengthProperty]; i++) {
+        var charcode = ascii.charCodeAt(i);
+        if (charcode < 0x80) utf8.push(charcode);
+        else if (charcode < 0x800) {
+          utf8.push(0xc0 | (charcode >> 6), 0x80 | (charcode & 0x3f));
+        } else if (charcode < 0xd800 || charcode >= 0xe000) {
+          utf8.push(0xe0 | (charcode >> 12), 0x80 | ((charcode >> 6) & 0x3f), 0x80 | (charcode & 0x3f));
+        } else {
+          i++;
+          charcode = 0x10000 + (((charcode & 0x3ff) << 10) | (ascii.charCodeAt(i) & 0x3ff));
+          utf8.push(0xf0 | (charcode >> 18), 0x80 | ((charcode >> 12) & 0x3f), 0x80 | ((charcode >> 6) & 0x3f), 0x80 | (charcode & 0x3f));
+        }
+      }
+
+      var utf8BitLength = utf8[lengthProperty] * 8;
+      words = [];
+      for (i = 0; i < utf8[lengthProperty]; i++) {
+        words[i >> 2] |= utf8[i] << (24 - (i % 4) * 8);
+      }
+      words[utf8BitLength >> 5] |= 0x80 << (24 - (utf8BitLength % 32));
+      words[(((utf8BitLength + 64) >> 9) << 4) + 15] = utf8BitLength;
+
+      for (var j = 0; j < words[lengthProperty]; j += 16) {
+        var w = words.slice(j, j + 16);
+        var oldHash = hash.slice(0);
+        for (i = 0; i < 64; i++) {
+          var w15 = w[i - 15], w2 = w[i - 2];
+          var a = hash[0], e = hash[4];
+          var temp1 = hash[7]
+            + (rightRotate(e, 6) ^ rightRotate(e, 11) ^ rightRotate(e, 25))
+            + ((e & hash[5]) ^ ((~e) & hash[6]))
+            + k[i]
+            + (w[i] = (i < 16) ? (w[i] || 0) : (
+                (w[i - 16] +
+                (rightRotate(w15, 7) ^ rightRotate(w15, 18) ^ (w15 >>> 3)) +
+                w[i - 7] +
+                (rightRotate(w2, 17) ^ rightRotate(w2, 19) ^ (w2 >>> 10))) | 0
+              ));
+          var temp2 = (rightRotate(a, 2) ^ rightRotate(a, 13) ^ rightRotate(a, 22))
+            + ((a & hash[1]) ^ (a & hash[2]) ^ (hash[1] & hash[2]));
+
+          hash = [(temp1 + temp2) | 0].concat(hash);
+          hash[4] = (hash[4] + temp1) | 0;
+          hash.length = 8;
+        }
+        for (i = 0; i < 8; i++) {
+          hash[i] = (hash[i] + oldHash[i]) | 0;
+        }
+      }
+
+      for (i = 0; i < 8; i++) {
+        for (var b = 3; b >= 0; b--) {
+          var byte = (hash[i] >> (8 * b)) & 255;
+          result += (byte < 16 ? '0' : '') + byte.toString(16);
+        }
+      }
+      return result;
+    }
+
+    function hashPassword(str) {
+      if (!str) return '';
+      return sha256Sync(String(str));
+    }
+
+    /**
+     * PRE-CONFIGURED DEFAULT ACCOUNTS (Mã hóa mật khẩu chuẩn SHA-256)
      * Only Employee ID 2265 (Trần Lê Hữu Lực) has full Admin permissions.
      */
     const DEFAULT_ACCOUNTS = [
       {
         employeeId: "2265",
-        password: "Lk@12345",
+        passwordHash: "035247ca1088ebe8b25bd9efdd890ef5a0593199cbf5aa3b9a25e0ec40ec33ed", // SHA-256 của Lk@12345
         name: "Trần Lê Hữu Lực",
         role: "Quản Trị Viên (Admin)",
         isAdmin: true
       },
       {
         employeeId: "2409",
-        password: "123456",
+        passwordHash: "8d969eef6ecad3c29a3a629280e686cf0c3f5d5a86aff3ca12020c923adc6c92", // SHA-256 của 123456
         name: "Trịnh Anh Tài",
         role: "Kỹ Sư An Toàn HSE",
         isAdmin: false
       },
       {
         employeeId: "1972",
-        password: "543210",
+        passwordHash: "cb00b922aa7f7951e24303c615a795e88746cc01fa5e823e8793c216970d1435", // SHA-256 của 543210
         name: "Phan Hải Đăng",
         role: "Nhân Viên Kiểm Tra PCCC",
         isAdmin: false
@@ -1883,6 +1940,7 @@
      */
     function getAccountsList() {
       const raw = localStorage.getItem(STORAGE_KEYS.ACCOUNTS);
+      let needsSave = false;
       if (raw) {
         try {
           const list = JSON.parse(raw);
@@ -1890,7 +1948,23 @@
             // Guarantee 2265 is always present with admin privilege
             const admin = list.find(a => a.employeeId === '2265');
             if (!admin) {
-              list.unshift(DEFAULT_ACCOUNTS[0]);
+              list.unshift({...DEFAULT_ACCOUNTS[0]});
+              needsSave = true;
+            }
+
+            // Auto-migrate any plain text passwords to passwordHash
+            list.forEach(a => {
+              if (a.password && !a.passwordHash) {
+                a.passwordHash = hashPassword(a.password);
+                delete a.password;
+                needsSave = true;
+              } else if (a.password && a.passwordHash) {
+                delete a.password;
+                needsSave = true;
+              }
+            });
+
+            if (needsSave) {
               saveAccountsList(list);
             }
             return list;
@@ -1937,7 +2011,23 @@
       }
 
       const accounts = getAccountsList();
-      const matched = accounts.find(a => a.employeeId.toUpperCase() === empId.toUpperCase() && a.password === password);
+      const inputHash = hashPassword(password);
+
+      const matched = accounts.find(a => {
+        if (a.employeeId.toUpperCase() !== empId.toUpperCase()) return false;
+        // Verify by SHA-256 hash
+        if (a.passwordHash && a.passwordHash.toLowerCase() === inputHash.toLowerCase()) {
+          return true;
+        }
+        // Fallback backward compatibility for legacy plain text passwords with automatic upgrade
+        if (a.password && a.password === password) {
+          a.passwordHash = inputHash;
+          delete a.password;
+          saveAccountsList(accounts);
+          return true;
+        }
+        return false;
+      });
 
       if (!matched) {
         errorText.innerText = 'Sai Mã nhân viên hoặc Mật khẩu. Vui lòng kiểm tra lại!';
@@ -2278,7 +2368,7 @@
 
       accounts.push({
         employeeId: id,
-        password: pass,
+        passwordHash: hashPassword(pass),
         name: name,
         role: role,
         isAdmin: false
@@ -2309,7 +2399,8 @@
         return;
       }
 
-      acc.password = newPass.trim();
+      acc.passwordHash = hashPassword(newPass.trim());
+      delete acc.password;
       saveAccountsList(accounts);
       renderSettingsAccountManagement();
       showToast(`Đã đổi mật khẩu cho tài khoản ${acc.employeeId} thành công!`, 'success');
