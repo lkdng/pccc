@@ -724,32 +724,28 @@
                 class="text-[10px] font-bold text-pccc-700 bg-red-50 px-2 py-0.5 rounded border border-red-200">0 thiết
                 bị</span>
             </div>
-            <div class="space-y-1.5">
+            <div>
               <!-- Select dropdown auto-filtered by category -->
               <select id="selectDeviceByCategory" onchange="onDeviceSelectDropdown(this.value)"
                 class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs font-bold text-slate-900 outline-none focus:bg-white focus:border-pccc-600 focus:ring-1 focus:ring-pccc-600 transition">
                 <option value="">-- Chọn mã thiết bị trong nhóm --</option>
               </select>
-              <!-- Input field with datalist for typing or scanner -->
-              <div class="relative">
-                <input type="text" id="inputDeviceId" list="masterDeviceList" oninput="onDeviceTyped(this.value)"
-                  onchange="onDeviceSelected(this.value)" placeholder="Hoặc nhập mã thiết bị (VD: BOT-X1-01)"
-                  class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs font-bold text-slate-900 uppercase outline-none focus:bg-white focus:border-pccc-600 focus:ring-1 focus:ring-pccc-600 transition">
-                <datalist id="masterDeviceList"></datalist>
-              </div>
+              <!-- Hidden input to store deviceId value for form processing -->
+              <input type="hidden" id="inputDeviceId">
+              <datalist id="masterDeviceList" class="hidden"></datalist>
             </div>
           </div>
           <div>
             <label class="block text-xs font-bold text-slate-700 mb-1">Vị Trí Đặt *</label>
             <input type="text" id="inputLocation" placeholder="Ví dụ: Xưởng 1 - Cột A3"
-              class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs font-medium text-slate-900 outline-none focus:bg-white focus:border-pccc-600 focus:ring-1 focus:ring-pccc-600">
+              class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs font-medium text-slate-900 outline-none focus:bg-white focus:border-pccc-600 focus:ring-1 focus:ring-pccc-600" readonly>
           </div>
         </div>
 
         <!-- Meta tags -->
         <div id="deviceMetaBar"
           class="hidden pt-2 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
-          <span id="lblStandardWeight">Chuẩn: <strong>--</strong> kg</span>
+          <span id="lblStandardWeight">Chuẩn: <strong>--</strong></span>
           <span id="lblInspectionExpiry">Hạn KĐ: <strong>--</strong></span>
         </div>
       </div>
@@ -1243,7 +1239,7 @@
 
         <div>
           <label class="block text-xs font-bold text-slate-700 mb-1">Ghi Chú / Đề Xuất Khắc Phục</label>
-          <textarea id="inputRecommendation" rows="2"
+          <textarea id="inputRecommendation" rows="2" oninput="this.dataset.userEdited = 'true'"
             placeholder="Nhập yêu cầu nạp sạc, thay thế ron, bảo dưỡng máy bơm..."
             class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs font-medium text-slate-900 outline-none focus:bg-white focus:border-pccc-600"></textarea>
         </div>
@@ -3305,8 +3301,15 @@
     }
 
     function onDeviceSelectDropdown(deviceId) {
-      if (!deviceId) return;
-      document.getElementById('inputDeviceId').value = deviceId;
+      const inputEl = document.getElementById('inputDeviceId');
+      if (inputEl) inputEl.value = deviceId || '';
+
+      if (!deviceId) {
+        document.getElementById('inputLocation').value = '';
+        const metaBar = document.getElementById('deviceMetaBar');
+        if (metaBar) metaBar.classList.add('hidden');
+        return;
+      }
       onDeviceSelected(deviceId);
     }
 
@@ -3713,20 +3716,31 @@
           lblExp.classList.remove('hidden');
         }
       }
+
+      autoEvaluateCurrentForm();
     }
 
     function onDeviceSelected(deviceId) {
       if (!deviceId) return;
       const cleanId = deviceId.trim().toUpperCase();
-      document.getElementById('inputDeviceId').value = cleanId;
+      const inputEl = document.getElementById('inputDeviceId');
+      if (inputEl) inputEl.value = cleanId;
+
+      const found = masterData.find(d => d.deviceId.toUpperCase() === cleanId);
 
       const selectEl = document.getElementById('selectDeviceByCategory');
       if (selectEl) {
         const optionExists = Array.from(selectEl.options).some(o => o.value === cleanId);
-        if (optionExists) selectEl.value = cleanId;
+        if (optionExists) {
+          selectEl.value = cleanId;
+        } else {
+          const opt = document.createElement('option');
+          opt.value = cleanId;
+          opt.innerText = found ? `${cleanId} - ${found.deviceName || ''} (${found.location || ''})` : cleanId;
+          selectEl.appendChild(opt);
+          selectEl.value = cleanId;
+        }
       }
-
-      const found = masterData.find(d => d.deviceId.toUpperCase() === cleanId);
       if (found) {
         if (found.location) document.getElementById('inputLocation').value = found.location;
 
@@ -3761,6 +3775,8 @@
 
         showToast(`Đã nhận diện: ${found.deviceName || cleanId}`, 'info');
       }
+
+      autoEvaluateCurrentForm();
     }
 
     function setToggle(fieldId, value) {
@@ -3778,8 +3794,8 @@
       } else {
         btnPass.className = 'px-4 py-2 rounded-xl text-xs font-bold border border-slate-200 bg-slate-50 text-slate-600 transition';
         btnFail.className = 'px-4 py-2 rounded-xl text-xs font-bold border toggle-active-fail transition';
-        setFinalResult('HỎNG');
       }
+      autoEvaluateCurrentForm();
     }
 
     function setGaugeStatus(color) {
@@ -3792,15 +3808,14 @@
             btn.className = 'gauge-btn py-3 px-2 rounded-xl border-2 border-emerald-500 bg-emerald-600 text-white font-bold text-xs flex flex-col items-center justify-center transition shadow';
           } else if (c === 'Đỏ') {
             btn.className = 'gauge-btn py-3 px-2 rounded-xl border-2 border-red-500 bg-red-600 text-white font-bold text-xs flex flex-col items-center justify-center transition shadow';
-            setFinalResult('HỎNG');
           } else if (c === 'Vàng') {
             btn.className = 'gauge-btn py-3 px-2 rounded-xl border-2 border-amber-500 bg-amber-600 text-white font-bold text-xs flex flex-col items-center justify-center transition shadow';
-            setFinalResult('HỎNG');
           }
         } else {
           btn.className = 'gauge-btn py-3 px-2 rounded-xl border border-slate-200 bg-slate-50 text-slate-700 font-semibold text-xs flex flex-col items-center justify-center transition hover:bg-slate-100';
         }
       });
+      autoEvaluateCurrentForm();
     }
 
     function calculateCo2Loss() {
@@ -3816,6 +3831,7 @@
         badge.className = 'text-xs font-bold px-3 py-1.5 rounded-lg bg-slate-200 text-slate-600';
         badge.innerText = 'Chưa nhập cân nặng';
         box.className = 'rounded-xl p-3 bg-slate-50 border border-slate-200 flex items-center justify-between';
+        autoEvaluateCurrentForm();
         return;
       }
 
@@ -3827,12 +3843,127 @@
         badge.className = 'text-xs font-bold px-3 py-1.5 rounded-lg bg-red-600 text-white pulse-alert shadow';
         badge.innerText = '⚠️ CẢNH BÁO NẠP SẠC (>10%)';
         box.className = 'rounded-xl p-3 bg-red-50 border-2 border-red-400 flex items-center justify-between';
-        setFinalResult('HỎNG');
-        document.getElementById('inputRecommendation').value = `Bình CO2 hao hụt ${loss}%, vượt ngưỡng cho phép 10%. Đề xuất xuất kho nạp sạc khí ngay!`;
       } else {
         badge.className = 'text-xs font-bold px-3 py-1.5 rounded-lg bg-emerald-600 text-white';
         badge.innerText = '✅ ĐẠT TIÊU CHUẨN';
         box.className = 'rounded-xl p-3 bg-emerald-50 border border-emerald-300 flex items-center justify-between';
+      }
+
+      autoEvaluateCurrentForm();
+    }
+
+    /**
+     * TỰ ĐỘNG ĐÁNH GIÁ KẾT QUẢ KIỂM TRA (ĐẠT / HỎNG) DỰA TRÊN TẤT CẢ TIÊU CHÍ KỸ THUẬT
+     */
+    function autoEvaluateCurrentForm() {
+      const failReasons = [];
+
+      if (currentCategory === 'Binh_Bot') {
+        const gauge = document.getElementById('bot_gaugeStatus')?.value;
+        const nozzle = document.getElementById('bot_nozzle')?.value;
+        const pin = document.getElementById('bot_pin')?.value;
+
+        if (gauge === 'Đỏ') failReasons.push('Kim đồng hồ tụt áp (vùng Đỏ)');
+        else if (gauge === 'Vàng') failReasons.push('Kim đồng hồ quá áp (vùng Vàng)');
+
+        if (nozzle === 'HỎNG') failReasons.push('Loa phun/vòi dẫn bị nứt vỡ hoặc hỏng');
+        if (pin === 'HỎNG') failReasons.push('Chốt an toàn/kẹp chì bị đứt hoặc mất niêm phong');
+
+      } else if (currentCategory === 'Binh_CO2') {
+        const std = parseFloat(document.getElementById('co2_standardWeight')?.value) || 0;
+        const act = parseFloat(document.getElementById('co2_actualWeight')?.value) || 0;
+        const nozzle = document.getElementById('co2_nozzle')?.value;
+        const pin = document.getElementById('co2_pin')?.value;
+
+        if (std > 0 && act > 0) {
+          let loss = ((std - act) / std) * 100;
+          loss = Math.max(0, parseFloat(loss.toFixed(2)));
+          if (loss > 10.0) {
+            failReasons.push(`Bình CO2 hao hụt ${loss}%, vượt ngưỡng cho phép 10%. Đề xuất xuất kho nạp sạc khí ngay!`);
+          }
+        }
+
+        if (nozzle === 'HỎNG') failReasons.push('Loa phun CO2 bị biến dạng hoặc nứt vỡ');
+        if (pin === 'HỎNG') failReasons.push('Chốt an toàn/niêm phong cụm mỏ vịt không nguyên vẹn');
+
+      } else if (currentCategory === 'Chuong_BaoChay') {
+        const btn = document.getElementById('alarm_btn')?.value;
+        const sound = document.getElementById('alarm_sound')?.value;
+        const lamp = document.getElementById('alarm_lamp')?.value;
+        const reset = document.getElementById('alarm_reset')?.value;
+
+        if (btn === 'Không Đạt') failReasons.push('Nút ấn khẩn cấp không hoạt động');
+        if (sound === 'Không Đạt') failReasons.push('Chuông/còi báo cháy âm lượng không đạt hoặc không kêu');
+        if (lamp === 'Không Đạt') failReasons.push('Đèn chớp báo cháy không sáng');
+        if (reset === 'Không Đạt') failReasons.push('Khôi phục trạng thái (Reset) gặp sự cố');
+
+      } else if (currentCategory === 'Tu_Vach_Tuong') {
+        const valve = document.getElementById('hose_valve')?.value;
+        const leak = document.getElementById('hose_leak')?.value;
+        const coupling = document.getElementById('hose_coupling')?.value;
+        const avail = document.getElementById('nozzle_avail')?.value;
+        const nCoupling = document.getElementById('nozzle_coupling')?.value;
+
+        if (valve === 'Không Đạt') failReasons.push('Van góc chữa cháy bị kẹt');
+        if (leak === 'Rò rỉ') failReasons.push('Cuộn vòi bị rách, mục hoặc rò rỉ nước');
+        if (coupling === 'Hỏng') failReasons.push('Ngàm nối cuộn vòi bị hỏng hoặc mất gioăng');
+        if (avail === 'Thiếu') failReasons.push('Thiếu lăng phun chữa cháy');
+        if (nCoupling === 'Không Đạt') failReasons.push('Khớp nối lăng phun không khớp');
+
+      } else if (currentCategory === 'Tram_Bom') {
+        const power = document.getElementById('pump_power')?.value;
+        const m1 = document.getElementById('pump_main1')?.value;
+        const m2 = document.getElementById('pump_main2')?.value;
+        const jockey = document.getElementById('pump_jockey')?.value;
+        const gauge = document.getElementById('pump_gauge')?.value;
+        const tank = document.getElementById('pump_tank')?.value;
+
+        if (power === 'Lỗi') failReasons.push('Nguồn điện/ắc quy khởi động bơm bị lỗi');
+        if (m1 === 'Lỗi') failReasons.push('Bơm chính 1 không khởi động được');
+        if (m2 === 'Lỗi') failReasons.push('Bơm chính 2 không khởi động được');
+        if (jockey === 'Lỗi') failReasons.push('Bơm bù áp (Jockey) gặp sự cố');
+        if (gauge === 'Tụt áp') failReasons.push('Áp lực đường ống bị tụt');
+        if (tank === 'Cạn') failReasons.push('Mực nước bể chứa PCCC bị cạn');
+
+      } else if (currentCategory === 'Tu_Trung_Tam_PCCC') {
+        const ac = document.getElementById('panel_ac')?.value;
+        const zone = document.getElementById('panel_zone')?.value;
+        const fire = document.getElementById('panel_fire')?.value;
+        const trouble = document.getElementById('panel_trouble')?.value;
+        const batSw = document.getElementById('panel_bat_sw')?.value;
+        const almSw = document.getElementById('panel_alarm_sw')?.value;
+        const testSw = document.getElementById('panel_test_sw')?.value;
+        const battery = document.getElementById('panel_battery')?.value;
+
+        if (ac === 'Lỗi') failReasons.push('Mất nguồn AC 220V tủ trung tâm');
+        if (zone === 'Lỗi') failReasons.push('Kênh (Zone) báo lỗi hoặc chạm chập');
+        if (fire === 'Lỗi') failReasons.push('Đèn/còi báo cháy tủ trung tâm không hoạt động');
+        if (trouble === 'Báo lỗi') failReasons.push('Tủ trung tâm đang cảnh báo lỗi (Trouble)');
+        if (batSw === 'Lỗi') failReasons.push('Công tắc ắc quy phụ bị ngắt');
+        if (almSw === 'Tắt/Lỗi') failReasons.push('Công tắc còi/chuông đang bị tắt');
+        if (testSw === 'Lỗi') failReasons.push('Kiểm tra bàn phím/đèn tủ trung tâm lỗi');
+        if (battery === 'Chai/Yếu') failReasons.push('Ắc quy dự phòng 24V bị chai hoặc sụt áp');
+      }
+
+      const recInput = document.getElementById('inputRecommendation');
+
+      if (failReasons.length > 0) {
+        setFinalResult('HỎNG');
+        if (recInput) {
+          const isUserCustom = recInput.dataset.userEdited === 'true' && recInput.value.trim() && !recInput.value.includes('hao hụt') && !recInput.value.includes('vượt ngưỡng cho phép');
+          if (!isUserCustom) {
+            recInput.value = failReasons.join('; ');
+            recInput.dataset.autoGenerated = 'true';
+          }
+        }
+      } else {
+        setFinalResult('ĐẠT');
+        if (recInput) {
+          if (recInput.dataset.autoGenerated === 'true' || recInput.value.includes('hao hụt') || recInput.value.includes('vượt ngưỡng cho phép') || recInput.value.includes('nạp sạc khí ngay')) {
+            recInput.value = '';
+            delete recInput.dataset.autoGenerated;
+          }
+        }
       }
     }
 
@@ -3911,14 +4042,16 @@
      * GATHER FORM DATA & SUBMIT
      */
     function gatherCurrentFormData() {
-      const deviceId = document.getElementById('inputDeviceId').value.trim();
+      const inputEl = document.getElementById('inputDeviceId');
+      const selectEl = document.getElementById('selectDeviceByCategory');
+      const deviceId = ((inputEl ? inputEl.value : '') || (selectEl ? selectEl.value : '')).trim();
       const location = document.getElementById('inputLocation').value.trim();
       const inspector = localStorage.getItem(STORAGE_KEYS.INSPECTOR) || 'Kỹ Sư An Toàn';
       const finalResult = document.getElementById('finalResultValue').value;
       const recommendation = document.getElementById('inputRecommendation').value.trim();
 
       if (!deviceId) {
-        showToast('Vui lòng nhập hoặc quét Mã Thiết Bị!', 'warning');
+        showToast('Vui lòng chọn hoặc quét Mã Thiết Bị!', 'warning');
         return null;
       }
 
@@ -4065,15 +4198,20 @@
       const selectEl = document.getElementById('selectDeviceByCategory');
       if (selectEl) selectEl.value = '';
       document.getElementById('inputLocation').value = '';
-      document.getElementById('inputRecommendation').value = '';
+      const rec = document.getElementById('inputRecommendation');
+      if (rec) {
+        rec.value = '';
+        delete rec.dataset.userEdited;
+        delete rec.dataset.autoGenerated;
+      }
       document.getElementById('deviceMetaBar').classList.add('hidden');
       removeCapturedPhoto();
 
       const co2Actual = document.getElementById('co2_actualWeight');
       if (co2Actual) {
         co2Actual.value = '';
-        calculateCo2Loss();
       }
+      calculateCo2Loss();
 
       setFinalResult('ĐẠT');
       window.scrollTo({ top: 0, behavior: 'smooth' });
